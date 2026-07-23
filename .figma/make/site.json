@@ -1,0 +1,11 @@
+{
+  "title": "ResQ AI",
+  "description": "AI-assisted disaster relief dashboard for emergencies, shelters, helplines, and response coordination.",
+  "language": "en",
+  "robots": {
+    "index": true
+  },
+  "accessibility": {
+    "addBypassLinks": true
+  }
+}
