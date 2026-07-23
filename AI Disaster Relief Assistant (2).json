@@ -1,0 +1,348 @@
+{
+  "name": "AI Disaster Relief Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "responseNodes"
+        }
+      },
+      "id": "3a6e1b1e-348e-4112-9025-8a1d9f71733b",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        112
+      ],
+      "webhookId": "91011894-cf17-4a30-9ad6-c0a457fbcc26"
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an AI Disaster Relief Assistant.\n\nYour job is to analyze the user's disaster-related message.\n\nInstructions:\n\n1. Detect the language of the user's message.\n2. Extract:\n   - language (\"en\" or \"ur\")\n   - location\n   - problem\n   - urgency (LOW, MEDIUM, HIGH)\n   - guidance\n   - isComplete\n\n3. If location or problem is missing, set its value to \"Unknown\" and set isComplete to false.\n\n4. Write the guidance in the SAME language as the user's message.\n   - If the user writes in English, guidance must be in English.\n   - If the user writes in Urdu, guidance must be in Urdu.\n   - If the user mixes Urdu and English, respond naturally in the same mixed style.\n\n5. Return ONLY valid JSON. Do not include explanations or markdown.\n\nExample output:\n\n{\n  \"language\": \"en\",\n  \"location\": \"Swat\",\n  \"problem\": \"Flooding\",\n  \"urgency\": \"HIGH\",\n  \"guidance\": \"Move to higher ground immediately and avoid floodwater.\",\n  \"isComplete\": true\n}"
+        }
+      },
+      "id": "42509ce7-c30a-4b8b-a244-ffa91c1cf462",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-latest",
+        "options": {}
+      },
+      "id": "9eef97b0-0f3c-48eb-a637-1a2c9d6a5417",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        336
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JuePtscwKoPhgsss",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"location\": \"Swat\",\n  \"problem\": \"Flooding and lack of clean drinking water\",\n  \"urgency\": \"HIGH\",\n  \"guidance\": \"Move to higher ground and contact Rescue 1122 immediately.\",\n  \"isComplete\": true\n}"
+      },
+      "id": "e67f85e2-a724-4f80-953b-f95d3de4f64e",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "25d0e92b-1317-433d-acd8-50a6d30872e5",
+              "leftValue": "={{ $json.output.isComplete }}",
+              "rightValue": "={{ false }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "b3c65929-8662-4137-8c47-11866b77500c",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        576,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "message": "I can definitely help with your emergency request.\n\nPlease resend your request including all these:\n\n📍 Location\n🚨 Problem / Assistance Needed\n📈 Urgency Level",
+        "options": {}
+      },
+      "id": "2ed1ae60-5351-40dc-b886-9794931f4389",
+      "name": "Chat",
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        16
+      ],
+      "webhookId": "9a18e288-7584-4483-981b-a57306f6240e"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1x-ntgGCM0ZlJlyjiAY8VvYYTpu5U9TGr5F2Uz29jaqk",
+          "mode": "list",
+          "cachedResultName": "Disaster Relief Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x-ntgGCM0ZlJlyjiAY8VvYYTpu5U9TGr5F2Uz29jaqk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x-ntgGCM0ZlJlyjiAY8VvYYTpu5U9TGr5F2Uz29jaqk/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "District",
+              "lookupValue": "={{ $json.output.location }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e35ccb01-3fc5-4661-8791-f0b44638d889",
+      "name": "Get row(s) in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        800,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yA3ye8xDOkOc5cIc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Original User Request:\n{{ $('When chat message received').item.json.chatInput }}\n\nDetected Problem:\n{{ $('AI Agent').item.json.output.problem }}\n\nDetected Location:\n{{ $('AI Agent').item.json.output.location }}\n\nUrgency:\n{{ $('AI Agent').item.json.output.urgency }}\n\nAvailable Relief Camps:\n{{ JSON.stringify($input.all().map(i => i.json)) }}\n\nRecommend the single best relief camp.",
+        "options": {
+          "systemMessage": "You are an AI Disaster Relief Coordinator.\n\nYour responsibility is to recommend the single most suitable relief camp based on the user's emergency needs and the available relief camp data.\n\nRules:\n\n1. Carefully analyze the available camps.\n2. Recommend ONLY ONE best camp.\n3. Give preference to:\n   - Matching location\n   - Availability of the requested supplies\n   - Camp status (prefer Open camps)\n   - Highest remaining capacity\n4. Explain in one short sentence why this camp was selected.\n5. Include:\n   - Camp Name\n   - Detailed Location\n   - Available Supplies\n   - Capacity\n   - Contact Number\n6. Respond in the SAME language as the user's original request.\n   - If the user writes in English, reply entirely in English.\n   - If the user writes in Urdu, reply entirely in Urdu.\n   - If the user mixes Urdu and English, reply naturally in the same style.\n7. If the urgency is HIGH, end the response by advising the user to immediately contact Rescue 1122 if lives are in danger.\n8. Keep the response concise, empathetic, and easy to understand."
+        }
+      },
+      "id": "71da7848-9cdc-4c0b-bb19-bdf3bfba9e01",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1024,
+        208
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-latest",
+        "options": {}
+      },
+      "id": "c4019161-fdd1-4cbd-9be1-a3f097688e2d",
+      "name": "Google Gemini Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        400
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JuePtscwKoPhgsss",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "id": "22273355-1155-42da-8bf1-46615d3da85a",
+      "name": "Chat Recommendation",
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        208
+      ],
+      "webhookId": "3e405443-bcc6-4bce-8945-47ee618edf28"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        256,
+        304
+      ],
+      "id": "69e9df1e-3d64-4e36-8d0e-b440c507f29f",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Chat Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fd5bc945-524b-4789-bd19-0979a4d17873",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "da021f00934949886f7af635491fe0c1d3c9f5bcedf7b3f602c63ff1438512c6"
+  },
+  "nodeGroups": [],
+  "id": "SrGYb3iLATSkB5SP",
+  "tags": []
+}
