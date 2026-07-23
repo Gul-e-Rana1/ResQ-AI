@@ -1,0 +1,160 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('https://static.figma.com/font/PlusJakartaSans_wght__2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('https://static.figma.com/font/Inter_1') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('https://static.figma.com/font/JetBrainsMono_wght__1') format('woff2');
+}
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F1F5F9;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+
+  --color-text: #0F172A;
+  --color-text-2: #334155;
+  --color-text-3: #64748B;
+  --color-text-muted: #94A3B8;
+
+  --color-blue: #2563EB;
+  --color-blue-light: #EFF6FF;
+  --color-blue-mid: #DBEAFE;
+  --color-blue-dark: #1D4ED8;
+  --color-blue-deeper: #1E3A8A;
+
+  --color-green: #059669;
+  --color-green-light: #ECFDF5;
+  --color-green-mid: #D1FAE5;
+  --color-green-dark: #047857;
+
+  --color-orange: #EA580C;
+  --color-orange-light: #FFF7ED;
+  --color-orange-mid: #FED7AA;
+  --color-orange-dark: #C2410C;
+
+  --color-red: #DC2626;
+  --color-red-light: #FEF2F2;
+  --color-red-mid: #FECACA;
+  --color-red-dark: #B91C1C;
+
+  --color-yellow: #D97706;
+  --color-yellow-light: #FFFBEB;
+  --color-yellow-mid: #FDE68A;
+
+  --color-purple: #7C3AED;
+  --color-purple-light: #F5F3FF;
+  --color-purple-mid: #DDD6FE;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  line-height: 1.6;
+  margin: 0;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+*:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection { background: #DBEAFE; color: #1E3A8A; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fadeInUp 0.2s ease-out both; }
+
+@keyframes slideInRight {
+  from { transform: translateX(110%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.toast-slide { animation: slideInRight 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
+
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.pulse-indicator::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulseRing 1.8s ease-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.blink { animation: blink 1.6s ease-in-out infinite; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin { animation: spin 0.8s linear infinite; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.slide-down { animation: slideDown 0.18s ease-out both; }
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.scale-in { animation: scaleIn 0.18s ease-out both; }
