@@ -7,24 +7,24 @@ import { canAccessPage, getDashboardForRole, toShellRole } from "./lib/auth/role
 import { useAuth } from "./providers/AuthProvider";
 import type { UserProfile } from "./types/auth";
 
-// Pages
-import Landing from "./pages/Landing";
-import AuthPage from "./pages/Auth";
-import UserDashboard from "./pages/user/Dashboard";
-import MyEmergencies from "./pages/user/MyEmergencies";
-import EmergencyDetails from "./pages/user/EmergencyDetails";
-import CreateEmergency from "./pages/user/CreateEmergency";
-import AIChat from "./pages/user/AIChat";
-import NearbyCamps from "./pages/user/NearbyCamps";
-import ProfileSettings from "./pages/user/ProfileSettings";
-import Helplines from "./pages/user/Helplines";
-import CampDashboard from "./pages/camp/CampDashboard";
-import EmergencyRequests from "./pages/camp/EmergencyRequests";
-import TeamMembers from "./pages/camp/TeamMembers";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import PendingApprovals from "./pages/admin/PendingApprovals";
-import UsersPage from "./pages/admin/UsersPage";
-import Analytics from "./pages/admin/Analytics";
+// Pages 
+import Landing from "./screens/Landing";
+import AuthPage from "./screens/Auth";
+import UserDashboard from "./screens/user/Dashboard";
+import MyEmergencies from "./screens/user/MyEmergencies";
+import EmergencyDetails from "./screens/user/EmergencyDetails";
+import CreateEmergency from "./screens/user/CreateEmergency";
+import AIChat from "./screens/user/AIChat";
+import NearbyCamps from "./screens/user/NearbyCamps";
+import ProfileSettings from "./screens/user/ProfileSettings";
+import Helplines from "./screens/user/Helplines";
+import CampDashboard from "./screens/camp/CampDashboard";
+import EmergencyRequests from "./screens/camp/EmergencyRequests";
+import TeamMembers from "./screens/camp/TeamMembers";
+import AdminDashboard from "./screens/admin/AdminDashboard";
+import PendingApprovals from "./screens/admin/PendingApprovals";
+import UsersPage from "./screens/admin/UsersPage";
+import Analytics from "./screens/admin/Analytics";
 
 // Public pages that don't need layout
 const PUBLIC_PAGES = new Set([
