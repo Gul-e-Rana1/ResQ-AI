@@ -225,7 +225,7 @@ export default function CampDashboard({ onNavigate }: Props) {
               <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} domain={[5, 12]} />
               <Tooltip
                 contentStyle={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: number) => [`${v} min`, "Response Time"]}
+                formatter={(value) => [`${value ?? 0} min`, "Response Time"]}
               />
               <Line type="monotone" dataKey="time" stroke="#059669" strokeWidth={2} dot={{ fill: "#059669", r: 3 }} name="Response Time" />
             </LineChart>

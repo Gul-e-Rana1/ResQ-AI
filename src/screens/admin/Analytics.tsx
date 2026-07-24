@@ -168,7 +168,7 @@ export default function Analytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} domain={[5, 12]} />
-              <Tooltip contentStyle={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12 }} formatter={(v: number) => [`${v} min`, "Avg Time"]} />
+              <Tooltip contentStyle={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12 }} formatter={(value) => [`${value ?? 0} min`, "Avg Time"]} />
               <Line type="monotone" dataKey="avg" stroke="#059669" strokeWidth={2} dot={{ fill: "#059669", r: 3 }} />
             </LineChart>
           </ResponsiveContainer>

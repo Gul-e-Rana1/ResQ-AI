@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Avatar, Badge } from "./ui";
 
-export type UserRole = "user" | "camp_manager" | "admin";
+export type UserRole = "user" | "camp_manager" | "camp_team_member" | "admin";
 export type PageId = string;
 
 interface NavItem {
@@ -63,6 +63,12 @@ const roleConfig = {
   },
   camp_manager: {
     label: "Camp Manager",
+    color: "text-[#059669]",
+    bg: "bg-[#ECFDF5]",
+    nav: getCampNav,
+  },
+  camp_team_member: {
+    label: "Camp Team",
     color: "text-[#059669]",
     bg: "bg-[#ECFDF5]",
     nav: getCampNav,
@@ -167,7 +173,7 @@ export function Layout({
             </button>
             {roleMenuOpen && (
               <div className="mt-1 bg-white border border-[#E2E8F0] rounded-lg shadow-sm overflow-hidden slide-down">
-                {(["user", "camp_manager", "admin"] as UserRole[]).map((r) => (
+                {(["user", "camp_manager", "camp_team_member", "admin"] as UserRole[]).map((r) => (
                   <button
                     key={r}
                     onClick={() => { onRoleSwitch(r); setRoleMenuOpen(false); }}
