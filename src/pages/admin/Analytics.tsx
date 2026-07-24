@@ -227,3 +227,5 @@ export default function Analytics() {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

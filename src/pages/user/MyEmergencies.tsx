@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import {
   AlertTriangle, Filter, ChevronRight, Search, MapPin, Clock, Building2
@@ -169,3 +170,5 @@ export default function MyEmergencies({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

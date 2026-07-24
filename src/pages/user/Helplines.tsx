@@ -133,3 +133,5 @@ export default function Helplines() {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

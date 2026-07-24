@@ -445,3 +445,5 @@ export default function AuthPage({ page, onNavigate }: AuthProps) {
   if (page === "reset_password") return <ResetPasswordPage onNavigate={onNavigate} />;
   return null;
 }
+
+export const getServerSideProps = async () => ({ props: {} });

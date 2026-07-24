@@ -162,3 +162,5 @@ export default function TeamMembers() {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

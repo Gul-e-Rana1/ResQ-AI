@@ -300,3 +300,5 @@ export default function AIChat({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

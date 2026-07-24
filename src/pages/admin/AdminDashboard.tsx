@@ -233,3 +233,5 @@ export default function AdminDashboard({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

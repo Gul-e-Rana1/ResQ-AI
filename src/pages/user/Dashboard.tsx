@@ -331,3 +331,5 @@ export default function UserDashboard({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

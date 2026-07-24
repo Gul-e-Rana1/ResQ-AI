@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import {
   MapPin, Filter, ChevronRight, Search, Star, Users, Clock,
@@ -313,3 +314,5 @@ export default function NearbyCamps({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

@@ -254,3 +254,5 @@ export default function EmergencyDetails({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

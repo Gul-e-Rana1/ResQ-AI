@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import {
   AlertTriangle, Users, CheckCircle, Clock, Activity, ChevronRight,
@@ -249,3 +250,5 @@ export default function CampDashboard({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

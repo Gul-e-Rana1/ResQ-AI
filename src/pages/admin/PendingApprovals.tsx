@@ -242,3 +242,5 @@ export default function PendingApprovals() {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });
