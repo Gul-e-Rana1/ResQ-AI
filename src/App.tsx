@@ -1,25 +1,30 @@
-import React, { useState } from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { Layout, type UserRole, type PageId } from "./components/Layout";
 import { ToastContainer, useToast } from "./components/ui";
+import { canAccessPage, getDashboardForRole, toShellRole } from "./lib/auth/roles";
+import { useAuth } from "./providers/AuthProvider";
+import type { UserProfile } from "./types/auth";
 
-// Pages
-import Landing from "./pages/Landing";
-import AuthPage from "./pages/Auth";
-import UserDashboard from "./pages/user/Dashboard";
-import MyEmergencies from "./pages/user/MyEmergencies";
-import EmergencyDetails from "./pages/user/EmergencyDetails";
-import CreateEmergency from "./pages/user/CreateEmergency";
-import AIChat from "./pages/user/AIChat";
-import NearbyCamps from "./pages/user/NearbyCamps";
-import ProfileSettings from "./pages/user/ProfileSettings";
-import Helplines from "./pages/user/Helplines";
-import CampDashboard from "./pages/camp/CampDashboard";
-import EmergencyRequests from "./pages/camp/EmergencyRequests";
-import TeamMembers from "./pages/camp/TeamMembers";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import PendingApprovals from "./pages/admin/PendingApprovals";
-import UsersPage from "./pages/admin/UsersPage";
-import Analytics from "./pages/admin/Analytics";
+// Pages 
+import Landing from "./screens/Landing";
+import AuthPage from "./screens/Auth";
+import UserDashboard from "./screens/user/Dashboard";
+import MyEmergencies from "./screens/user/MyEmergencies";
+import EmergencyDetails from "./screens/user/EmergencyDetails";
+import CreateEmergency from "./screens/user/CreateEmergency";
+import AIChat from "./screens/user/AIChat";
+import NearbyCamps from "./screens/user/NearbyCamps";
+import ProfileSettings from "./screens/user/ProfileSettings";
+import Helplines from "./screens/user/Helplines";
+import CampDashboard from "./screens/camp/CampDashboard";
+import EmergencyRequests from "./screens/camp/EmergencyRequests";
+import TeamMembers from "./screens/camp/TeamMembers";
+import AdminDashboard from "./screens/admin/AdminDashboard";
+import PendingApprovals from "./screens/admin/PendingApprovals";
+import UsersPage from "./screens/admin/UsersPage";
+import Analytics from "./screens/admin/Analytics";
 
 // Public pages that don't need layout
 const PUBLIC_PAGES = new Set([
@@ -30,38 +35,59 @@ const PUBLIC_PAGES = new Set([
 // Pages available without layout (auth pages)
 const AUTH_PAGES = new Set(["login", "register", "forgot_password", "reset_password"]);
 
-type AuthPageType = "login" | "register" | "forgot_password" | "reset_password";
-
-const userInfo = {
-  user: { name: "Sarah Johnson", email: "sarah@resqai.com" },
-  camp_manager: { name: "Rajesh Kumar", email: "rajesh@campalpha.org" },
-  admin: { name: "Admin User", email: "admin@resqai.com" },
-};
+function getProfileName(profile: UserProfile | null) {
+  return profile?.full_name || profile?.email?.split("@")[0] || "ResQ AI User";
+}
 
 export default function App() {
   const [page, setPage] = useState<PageId>("landing");
-  const [role, setRole] = useState<UserRole>("user");
+  const { profile, user, loading: authLoading, signOut } = useAuth();
   const { toasts, addToast, removeToast } = useToast();
+  const role = toShellRole(profile?.role) as UserRole;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedPage = params.get("page");
+    if (requestedPage) {
+      setPage(requestedPage);
+    }
+  }, []);
 
   const navigate = (target: PageId) => {
-    // Default landing for role dashboards
-    if (target === "user_dashboard" || target === "camp_dashboard" || target === "admin_dashboard") {
-      // Already handled
+    if (!PUBLIC_PAGES.has(target) && !user) {
+      addToast("info", "Please sign in to continue");
+      setPage("login");
+      return;
     }
+
+    if (user && !canAccessPage(profile?.role, target)) {
+      addToast("warning", "You do not have access to that area");
+      setPage(getDashboardForRole(profile?.role));
+      return;
+    }
+
     setPage(target);
   };
 
-  const handleLogout = () => {
-    addToast("success", "Signed out successfully");
-    setPage("landing");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      addToast("success", "Signed out successfully");
+      setPage("landing");
+    } catch (error) {
+      addToast("error", error instanceof Error ? error.message : "Unable to sign out");
+    }
   };
 
   const handleRoleSwitch = (newRole: UserRole) => {
-    setRole(newRole);
-    if (newRole === "user") navigate("user_dashboard");
-    else if (newRole === "camp_manager") navigate("camp_dashboard");
-    else if (newRole === "admin") navigate("admin_dashboard");
-    addToast("info", `Switched to ${newRole === "user" ? "Resident" : newRole === "camp_manager" ? "Camp Manager" : "Admin"} view`);
+    if (profile?.role !== "admin") {
+      addToast("info", "Role switching is available to administrators only");
+      return;
+    }
+
+    if (newRole === "user") setPage("user_dashboard");
+    else if (newRole === "camp_manager" || newRole === "camp_team_member") setPage("camp_dashboard");
+    else if (newRole === "admin") setPage("admin_dashboard");
   };
 
   // Render page content
@@ -138,7 +164,16 @@ export default function App() {
   };
 
   const isPublicPage = PUBLIC_PAGES.has(page) || AUTH_PAGES.has(page);
-  const info = userInfo[role];
+  const displayName = getProfileName(profile);
+  const displayEmail = profile?.email || user?.email || "user@resqai.pk";
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-sm font-medium text-[#64748B]">Loading ResQ AI...</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -150,10 +185,10 @@ export default function App() {
           currentPage={page}
           onNavigate={navigate}
           onLogout={handleLogout}
-          userName={info.name}
-          userEmail={info.email}
+          userName={displayName}
+          userEmail={displayEmail}
           notifications={3}
-          onRoleSwitch={handleRoleSwitch}
+          onRoleSwitch={profile?.role === "admin" ? handleRoleSwitch : undefined}
         >
           {renderPage()}
         </Layout>
