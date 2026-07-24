@@ -7,7 +7,7 @@ import { canAccessPage, getDashboardForRole, toShellRole } from "./lib/auth/role
 import { useAuth } from "./providers/AuthProvider";
 import type { UserProfile } from "./types/auth";
 
-// Pages
+// Pages 
 import Landing from "./screens/Landing";
 import AuthPage from "./screens/Auth";
 import UserDashboard from "./screens/user/Dashboard";
