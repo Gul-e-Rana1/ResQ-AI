@@ -4,6 +4,8 @@ import {
   MapPin, CheckCircle, AlertTriangle, Shield
 } from "lucide-react";
 import { Button, Input, Alert } from "../components/ui";
+import { DEMO_ACCOUNTS, getDashboardForRole } from "@/lib/auth/roles";
+import { useAuth } from "@/providers/AuthProvider";
 
 interface AuthProps {
   page: "login" | "register" | "forgot_password" | "reset_password";
@@ -59,16 +61,19 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { signIn } = useAuth();
 
-  const handleLogin = (role: string) => {
+  const handleLogin = async (credentials?: { email: string; password: string }) => {
     setLoading(true);
     setError("");
-    setTimeout(() => {
+    try {
+      const profile = await signIn(credentials ?? { email, password });
+      onNavigate(getDashboardForRole(profile?.role));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in");
+    } finally {
       setLoading(false);
-      if (role === "admin") onNavigate("admin_dashboard");
-      else if (role === "camp") onNavigate("camp_dashboard");
-      else onNavigate("user_dashboard");
-    }, 1000);
+    }
   };
 
   return (
@@ -116,7 +121,7 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         </div>
 
-        <Button fullWidth loading={loading} onClick={() => handleLogin("user")}>
+        <Button fullWidth loading={loading} onClick={() => handleLogin()}>
           Sign In as User
         </Button>
 
@@ -128,7 +133,7 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
 
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => handleLogin("camp")}
+            onClick={() => handleLogin(DEMO_ACCOUNTS.camp_manager)}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
           >
             <div className="w-5 h-5 rounded bg-[#ECFDF5] flex items-center justify-center">
@@ -137,7 +142,7 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
             Camp Manager
           </button>
           <button
-            onClick={() => handleLogin("admin")}
+            onClick={() => handleLogin(DEMO_ACCOUNTS.admin)}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
           >
             <div className="w-5 h-5 rounded bg-[#F5F3FF] flex items-center justify-center">
@@ -163,15 +168,33 @@ function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"form" | "success">("form");
+  const [error, setError] = useState("");
+  const { signUp } = useAuth();
 
   const update = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    if (form.password !== form.confirm) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError("");
+    try {
+      await signUp({
+        fullName: form.name,
+        email: form.email,
+        phone: form.phone,
+        location: form.location,
+        password: form.password,
+      });
       setStep("success");
-    }, 1200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create account");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (step === "success") {
@@ -197,6 +220,8 @@ function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
       onBack={() => onNavigate("login")}
     >
       <div className="space-y-3">
+        {error && <Alert type="error">{error}</Alert>}
+
         <Input
           label="Full Name"
           placeholder="Sarah Johnson"
@@ -284,10 +309,20 @@ function ForgotPasswordPage({ onNavigate }: { onNavigate: (p: string) => void })
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { sendPasswordReset } = useAuth();
 
-  const handleSend = () => {
+  const handleSend = async () => {
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSent(true); }, 1000);
+    setError("");
+    try {
+      await sendPasswordReset(email);
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to send reset email");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -312,6 +347,8 @@ function ForgotPasswordPage({ onNavigate }: { onNavigate: (p: string) => void })
         </div>
       ) : (
         <div className="space-y-4">
+          {error && <Alert type="error">{error}</Alert>}
+
           <Input
             label="Email address"
             type="email"
@@ -338,10 +375,25 @@ function ResetPasswordPage({ onNavigate }: { onNavigate: (p: string) => void }) 
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+  const { updatePassword } = useAuth();
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    if (password !== confirm) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => { setLoading(false); setDone(true); }, 1000);
+    setError("");
+    try {
+      await updatePassword(password);
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update password");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -357,6 +409,8 @@ function ResetPasswordPage({ onNavigate }: { onNavigate: (p: string) => void }) 
         </div>
       ) : (
         <div className="space-y-4">
+          {error && <Alert type="error">{error}</Alert>}
+
           <Input
             label="New Password"
             type="password"
