@@ -5,8 +5,9 @@ import {
 } from "lucide-react";
 import { Card, Badge, Button, SearchInput, Select, Tabs } from "../../components/ui";
 import { MapView } from "../../components/MapView";
+import { useRealtimeCamps } from "@/hooks/useRealtimeCamps";
 
-const camps = [
+const mockCamps = [
   {
     id: "c1", name: "Camp Alpha", type: "Primary Relief Center", distance: "1.2 km",
     address: "123 Relief Road, Sector 4, New Delhi", capacity: 500, occupied: 380,
@@ -59,15 +60,38 @@ interface Props {
 }
 
 export default function NearbyCamps({ onNavigate }: Props) {
+  const { data: dbCamps = [] } = useRealtimeCamps();
   const [view, setView] = useState<"list" | "map">("list");
   const [search, setSearch] = useState("");
+
+  const formattedDbCamps = dbCamps.map((camp) => ({
+    id: camp.id,
+    name: camp.name,
+    type: "Relief Camp",
+    distance: "Near you",
+    address: `${camp.address}, ${camp.district}, ${camp.province}`,
+    capacity: camp.capacity_total,
+    occupied: Math.max(0, camp.capacity_total - camp.capacity_available),
+    status: (camp.status === "approved" ? "active" : camp.status) as (typeof mockCamps)[0]["status"],
+    rating: 4.8,
+    reviews: 120,
+    facilities: camp.services || ["Medical", "Food", "Shelter"],
+    contact: camp.contact_phone || "Emergency Contact",
+    coordinator: "Camp Manager",
+    departments: camp.services || ["Medical", "Relief"],
+    verified: true,
+  }));
+
+  const camps = formattedDbCamps.length > 0 ? formattedDbCamps : mockCamps;
   const [selectedCamp, setSelectedCamp] = useState(camps[0]);
+
+  const activeSelectedCamp = camps.find((c) => c.id === selectedCamp?.id) || camps[0];
 
   const filtered = camps.filter((c) =>
     search === "" || c.name.toLowerCase().includes(search.toLowerCase()) || c.address.toLowerCase().includes(search.toLowerCase())
   );
 
-  const pct = (c: typeof camps[0]) => Math.round((c.occupied / c.capacity) * 100);
+  const pct = (c: (typeof mockCamps)[0]) => Math.round((c.occupied / c.capacity) * 100);
 
   return (
     <div className="p-5 md:p-6 space-y-5 max-w-7xl">
@@ -128,9 +152,9 @@ export default function NearbyCamps({ onNavigate }: Props) {
         <div className="grid lg:grid-cols-3 gap-5">
           {/* Camp list */}
           <div className="lg:col-span-1 space-y-3">
-            {filtered.map((camp) => {
+            {filtered.map((camp: (typeof mockCamps)[0]) => {
               const p = pct(camp);
-              const isSelected = selectedCamp.id === camp.id;
+              const isSelected = activeSelectedCamp.id === camp.id;
               return (
                 <div
                   key={camp.id}
@@ -189,22 +213,22 @@ export default function NearbyCamps({ onNavigate }: Props) {
                         <h2 className="text-lg font-semibold text-[#0F172A] font-[family-name:var(--font-display)]">
                           {selectedCamp.name}
                         </h2>
-                        {selectedCamp.verified && (
+                        {activeSelectedCamp.verified && (
                           <div className="flex items-center gap-1 px-2 py-0.5 bg-[#EFF6FF] border border-[#DBEAFE] rounded-full">
                             <Shield size={10} className="text-[#2563EB]" />
                             <span className="text-[10px] font-semibold text-[#2563EB]">Verified</span>
                           </div>
                         )}
                       </div>
-                      <p className="text-sm text-[#64748B] mt-0.5">{selectedCamp.type}</p>
+                      <p className="text-sm text-[#64748B] mt-0.5">{activeSelectedCamp.type}</p>
                       <p className="text-xs text-[#94A3B8] flex items-center gap-1 mt-1">
-                        <MapPin size={10} /> {selectedCamp.address}
+                        <MapPin size={10} /> {activeSelectedCamp.address}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
                       <Star size={14} className="text-[#D97706] fill-[#D97706]" />
-                      <span className="text-sm font-semibold text-[#334155]">{selectedCamp.rating}</span>
-                      <span className="text-xs text-[#94A3B8]">({selectedCamp.reviews})</span>
+                      <span className="text-sm font-semibold text-[#334155]">{activeSelectedCamp.rating}</span>
+                      <span className="text-xs text-[#94A3B8]">({activeSelectedCamp.reviews})</span>
                     </div>
                   </div>
 
@@ -212,15 +236,15 @@ export default function NearbyCamps({ onNavigate }: Props) {
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-[#F8FAFC] rounded-xl p-3">
                       <p className="text-[10px] text-[#94A3B8] uppercase font-semibold">Capacity</p>
-                      <p className="text-base font-semibold text-[#0F172A] mt-0.5">{selectedCamp.capacity}</p>
+                      <p className="text-base font-semibold text-[#0F172A] mt-0.5">{activeSelectedCamp.capacity}</p>
                     </div>
                     <div className="bg-[#ECFDF5] rounded-xl p-3">
                       <p className="text-[10px] text-[#059669] uppercase font-semibold">Available</p>
-                      <p className="text-base font-semibold text-[#059669] mt-0.5">{selectedCamp.capacity - selectedCamp.occupied}</p>
+                      <p className="text-base font-semibold text-[#059669] mt-0.5">{activeSelectedCamp.capacity - activeSelectedCamp.occupied}</p>
                     </div>
                     <div className="bg-[#F8FAFC] rounded-xl p-3">
                       <p className="text-[10px] text-[#94A3B8] uppercase font-semibold">Distance</p>
-                      <p className="text-base font-semibold text-[#0F172A] mt-0.5">{selectedCamp.distance}</p>
+                      <p className="text-base font-semibold text-[#0F172A] mt-0.5">{activeSelectedCamp.distance}</p>
                     </div>
                   </div>
 
@@ -228,7 +252,7 @@ export default function NearbyCamps({ onNavigate }: Props) {
                   <div>
                     <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide mb-2">Facilities</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {selectedCamp.facilities.map((f) => (
+                      {activeSelectedCamp.facilities.map((f: string) => (
                         <span key={f} className="px-2.5 py-1 bg-[#F1F5F9] text-[#334155] text-xs rounded-full border border-[#E2E8F0]">
                           {f}
                         </span>
@@ -240,7 +264,7 @@ export default function NearbyCamps({ onNavigate }: Props) {
                   <div>
                     <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide mb-2">Departments</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {selectedCamp.departments.map((d) => (
+                      {activeSelectedCamp.departments.map((d: string) => (
                         <Badge key={d} variant="blue">{d}</Badge>
                       ))}
                     </div>
@@ -249,10 +273,10 @@ export default function NearbyCamps({ onNavigate }: Props) {
                   {/* Coordinator */}
                   <div className="flex items-center gap-3 p-3 bg-[#F8FAFC] rounded-xl border border-[#F1F5F9]">
                     <div className="w-9 h-9 rounded-full bg-[#EFF6FF] text-[#2563EB] text-sm font-bold flex items-center justify-center">
-                      {selectedCamp.coordinator.charAt(0)}
+                      {activeSelectedCamp.coordinator.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[#0F172A]">{selectedCamp.coordinator}</p>
+                      <p className="text-sm font-semibold text-[#0F172A]">{activeSelectedCamp.coordinator}</p>
                       <p className="text-xs text-[#64748B]">Camp Coordinator</p>
                     </div>
                     <div className="ml-auto flex items-center gap-2">

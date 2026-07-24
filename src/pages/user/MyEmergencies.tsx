@@ -4,7 +4,10 @@ import {
 } from "lucide-react";
 import { Card, Badge, StatusChip, Button, SearchInput, Select, Tabs, Pagination, EmptyState } from "../../components/ui";
 
-const emergencies = [
+import { useAuth } from "../../providers/AuthProvider";
+import { useRealtimeEmergencies } from "@/hooks/useRealtimeEmergencies";
+
+const mockEmergencies = [
   { id: "EM-2891", type: "Flood Evacuation", status: "en_route" as const, camp: "Camp Alpha", priority: "high", time: "Jul 22, 2026 · 09:14 AM", location: "Sector 14, New Delhi", people: 4 },
   { id: "EM-2845", type: "Medical Assistance", status: "resolved" as const, camp: "Camp Beta", priority: "critical", time: "Jul 21, 2026 · 3:22 PM", location: "Block B, Rohini", people: 2 },
   { id: "EM-2812", type: "Food & Shelter", status: "resolved" as const, camp: "Camp Delta", priority: "medium", time: "Jul 18, 2026 · 11:05 AM", location: "Dwarka Sector 6", people: 6 },
@@ -25,9 +28,32 @@ interface Props {
 }
 
 export default function MyEmergencies({ onNavigate }: Props) {
+  const { user } = useAuth();
+  const { data: dbEmergencies = [] } = useRealtimeEmergencies({
+    requesterId: user?.id,
+  });
+
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  const formattedDbEmergencies = dbEmergencies.map((em) => ({
+    id: em.id.slice(0, 8),
+    type: em.disaster_type.toUpperCase(),
+    status: (em.status.toLowerCase().replace(" ", "_") || "submitted") as (typeof mockEmergencies)[0]["status"],
+    camp: em.relief_camps?.name || "Pending Assignment",
+    priority: em.urgency.toLowerCase(),
+    time: new Date(em.created_at).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    location: em.address || `${em.district}, ${em.province}`,
+    people: em.people_count,
+  }));
+
+  const emergencies = formattedDbEmergencies.length > 0 ? formattedDbEmergencies : mockEmergencies;
 
   const tabs = [
     { id: "all", label: "All", count: emergencies.length },
