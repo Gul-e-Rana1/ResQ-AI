@@ -3,6 +3,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { getSafeRedirectUrl } from "@/lib/security";
 import type { SignInInput, SignUpInput, UserProfile } from "@/types/auth";
 
 interface AuthContextValue {
@@ -121,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendPasswordReset = useCallback(
     async (email: string) => {
-      const redirectTo = `${window.location.origin}/?page=reset_password`;
+      const redirectTo = getSafeRedirectUrl("/?page=reset_password");
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) throw error;
     },
@@ -158,7 +159,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within AuthProvider.");
+    return {
+      session: null,
+      user: null,
+      profile: null,
+      loading: true,
+      signIn: async () => null,
+      signUp: async () => {},
+      signOut: async () => {},
+      sendPasswordReset: async () => {},
+      updatePassword: async () => {},
+      refreshProfile: async () => null,
+    };
   }
   return context;
 }
