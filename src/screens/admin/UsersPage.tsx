@@ -146,7 +146,7 @@ export default function UsersPage({ onNavigate }: Props) {
 
         <Table
           columns={columns}
-          data={filtered as unknown as Record<string, unknown>[]}
+          data={filtered}
         />
 
         <Pagination page={page} total={filtered.length} perPage={10} onChange={setPage} />
