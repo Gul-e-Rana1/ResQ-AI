@@ -8,23 +8,23 @@ import { useAuth } from "./providers/AuthProvider";
 import type { UserProfile } from "./types/auth";
 
 // Pages
-import Landing from "./screens/Landing";
-import AuthPage from "./screens/Auth";
-import UserDashboard from "./screens/user/Dashboard";
-import MyEmergencies from "./screens/user/MyEmergencies";
-import EmergencyDetails from "./screens/user/EmergencyDetails";
-import CreateEmergency from "./screens/user/CreateEmergency";
-import AIChat from "./screens/user/AIChat";
-import NearbyCamps from "./screens/user/NearbyCamps";
-import ProfileSettings from "./screens/user/ProfileSettings";
-import Helplines from "./screens/user/Helplines";
-import CampDashboard from "./screens/camp/CampDashboard";
-import EmergencyRequests from "./screens/camp/EmergencyRequests";
-import TeamMembers from "./screens/camp/TeamMembers";
-import AdminDashboard from "./screens/admin/AdminDashboard";
-import PendingApprovals from "./screens/admin/PendingApprovals";
-import UsersPage from "./screens/admin/UsersPage";
-import Analytics from "./screens/admin/Analytics";
+import Landing from "./pages/Landing";
+import AuthPage from "./pages/Auth";
+import UserDashboard from "./pages/user/Dashboard";
+import MyEmergencies from "./pages/user/MyEmergencies";
+import EmergencyDetails from "./pages/user/EmergencyDetails";
+import CreateEmergency from "./pages/user/CreateEmergency";
+import AIChat from "./pages/user/AIChat";
+import NearbyCamps from "./pages/user/NearbyCamps";
+import ProfileSettings from "./pages/user/ProfileSettings";
+import Helplines from "./pages/user/Helplines";
+import CampDashboard from "./pages/camp/CampDashboard";
+import EmergencyRequests from "./pages/camp/EmergencyRequests";
+import TeamMembers from "./pages/camp/TeamMembers";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import PendingApprovals from "./pages/admin/PendingApprovals";
+import UsersPage from "./pages/admin/UsersPage";
+import Analytics from "./pages/admin/Analytics";
 
 // Public pages that don't need layout
 const PUBLIC_PAGES = new Set([
@@ -45,35 +45,55 @@ export default function App() {
   const { toasts, addToast, removeToast } = useToast();
   const role = toShellRole(profile?.role) as UserRole;
 
+  const changePage = (target: PageId, updateHistory = true) => {
+    setPage(target);
+    if (updateHistory && typeof window !== "undefined") {
+      const currentParam = new URLSearchParams(window.location.search).get("page") || "landing";
+      if (currentParam !== target) {
+        const url = target === "landing" ? "/" : `/?page=${encodeURIComponent(target)}`;
+        window.history.pushState({ page: target }, "", url);
+      }
+    }
+  };
+
   useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const requestedPage = (params.get("page") as PageId) || "landing";
+      setPage(requestedPage);
+    };
+
     const params = new URLSearchParams(window.location.search);
-    const requestedPage = params.get("page");
+    const requestedPage = params.get("page") as PageId | null;
     if (requestedPage) {
       setPage(requestedPage);
     }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const navigate = (target: PageId) => {
     if (!PUBLIC_PAGES.has(target) && !user) {
       addToast("info", "Please sign in to continue");
-      setPage("login");
+      changePage("login");
       return;
     }
 
     if (user && !canAccessPage(profile?.role, target)) {
       addToast("warning", "You do not have access to that area");
-      setPage(getDashboardForRole(profile?.role));
+      changePage(getDashboardForRole(profile?.role) as PageId);
       return;
     }
 
-    setPage(target);
+    changePage(target);
   };
 
   const handleLogout = async () => {
     try {
       await signOut();
       addToast("success", "Signed out successfully");
-      setPage("landing");
+      changePage("landing");
     } catch (error) {
       addToast("error", error instanceof Error ? error.message : "Unable to sign out");
     }
@@ -85,9 +105,9 @@ export default function App() {
       return;
     }
 
-    if (newRole === "user") setPage("user_dashboard");
-    else if (newRole === "camp_manager" || newRole === "camp_team_member") setPage("camp_dashboard");
-    else if (newRole === "admin") setPage("admin_dashboard");
+    if (newRole === "user") changePage("user_dashboard");
+    else if (newRole === "camp_manager" || newRole === "camp_team_member") changePage("camp_dashboard");
+    else if (newRole === "admin") changePage("admin_dashboard");
   };
 
   // Render page content
