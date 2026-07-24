@@ -607,14 +607,14 @@ interface Column<T> {
   width?: string;
 }
 
-interface TableProps<T extends Record<string, unknown>> {
+interface TableProps<T extends object> {
   columns: Column<T>[];
   data: T[];
   onRowClick?: (row: T) => void;
   emptyMessage?: string;
 }
 
-export function Table<T extends Record<string, unknown>>({ columns, data, onRowClick, emptyMessage = "No data available" }: TableProps<T>) {
+export function Table<T extends object>({ columns, data, onRowClick, emptyMessage = "No data available" }: TableProps<T>) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
@@ -647,7 +647,7 @@ export function Table<T extends Record<string, unknown>>({ columns, data, onRowC
               >
                 {columns.map((col) => (
                   <td key={col.key} className="px-4 py-3.5 text-sm text-[#334155] whitespace-nowrap">
-                    {col.render ? col.render(row) : (row[col.key] as React.ReactNode)}
+                    {col.render ? col.render(row) : ((row as Record<string, React.ReactNode>)[col.key] ?? null)}
                   </td>
                 ))}
               </tr>
