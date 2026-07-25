@@ -128,7 +128,7 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
         {/* <div className="relative flex items-center gap-3">
           <div className="flex-1 h-px bg-[#E2E8F0]" />
           <span className="text-xs text-[#94A3B8]">or continue as</span>
-          <div className="flex-1 h-px bg-[#E2E8F0]" />
+          <div className=" flex-1 h-px bg-[#E2E8F0]" />
         </div> */}
 
         {/* <div className="grid grid-cols-2 gap-2">
