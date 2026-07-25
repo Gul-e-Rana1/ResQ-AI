@@ -8,6 +8,7 @@ import { sendAiChatMessage } from "@/lib/services/ai";
 import { recommendCamps, type CampRecommendation } from "@/lib/services/camps";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { DISASTER_TYPES } from "@/lib/constants/pakistan";
+import { AI_CHAT_STORAGE_KEY } from "@/lib/constants/storage";
 
 interface Message {
   id: string;
@@ -41,8 +42,20 @@ interface Props {
   onNavigate: (page: string, id?: string) => void;
 }
 
+function loadStoredMessages(): Message[] {
+  if (typeof window === "undefined") return initialMessages;
+  try {
+    const raw = window.sessionStorage.getItem(AI_CHAT_STORAGE_KEY);
+    if (!raw) return initialMessages;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : initialMessages;
+  } catch {
+    return initialMessages;
+  }
+}
+
 export default function AIChat({ onNavigate }: Props) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(loadStoredMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -55,6 +68,15 @@ export default function AIChat({ onNavigate }: Props) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing quota) — chat still works in-memory
+    }
   }, [messages]);
 
   const sendMessage = async (text: string) => {
@@ -78,7 +100,7 @@ export default function AIChat({ onNavigate }: Props) {
       );
 
       let campRecs: CampRecommendation[] = [];
-      if (res.topicAllowed && res.isEmergency && res.disasterType && coords) {
+      if (res.topicAllowed && res.isEmergency && res.extractedLocation && res.disasterType && coords) {
         const matchedDisasterType = DISASTER_TYPES.find((d) => d === res.disasterType);
         if (matchedDisasterType) {
           try {
