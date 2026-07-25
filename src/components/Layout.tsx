@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   LayoutDashboard, AlertTriangle, MapPin, MessageSquare, Phone, User, Settings,
   ChevronRight, Bell, Search, Menu, X, LogOut, Shield, Users, BarChart3,
-  CheckSquare, Building2, HardHat, FileText, ChevronDown, HeartHandshake
+  CheckSquare, Building2, FileText, HeartHandshake
 } from "lucide-react";
 import { Avatar, Badge } from "./ui";
 import type { NotificationRecord } from "@/lib/services/notifications";
@@ -37,7 +37,6 @@ function getCampNav(badges: Record<string, number>): NavItem[] {
     { id: "camp_emergency_requests", label: "Emergency Requests", icon: <AlertTriangle size={16} />, badge: badges.camp_emergency_requests, section: "Operations" },
     { id: "camp_team", label: "Team Members", icon: <Users size={16} />, section: "Operations" },
     { id: "camp_details_mgmt", label: "Camp Details", icon: <Building2 size={16} />, section: "Management" },
-    { id: "camp_departments", label: "Departments", icon: <HardHat size={16} />, section: "Management" },
     { id: "camp_profile", label: "Profile", icon: <User size={16} />, section: "Account" },
     { id: "camp_settings", label: "Settings", icon: <Settings size={16} />, section: "Account" },
   ];
@@ -103,7 +102,6 @@ interface LayoutProps {
   notifications?: NotificationRecord[];
   onNotificationClick?: (notificationId: string, read: boolean) => void;
   badges?: Record<string, number>;
-  onRoleSwitch?: (role: UserRole) => void;
 }
 
 export function Layout({
@@ -117,11 +115,9 @@ export function Layout({
   notifications = [],
   onNotificationClick,
   badges = {},
-  onRoleSwitch,
 }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
 
   const config = roleConfig[role];
   const navItems = config.nav(badges);
@@ -170,37 +166,6 @@ export function Layout({
           </button>
         </div>
 
-        {/* Role switcher */}
-        {onRoleSwitch && (
-          <div className="px-3 pt-3">
-            <button
-              onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F8FAFC] transition-colors"
-            >
-              <div className={`w-6 h-6 rounded-md ${config.bg} flex items-center justify-center`}>
-                <Shield size={12} className={config.color} />
-              </div>
-              <span className={`text-xs font-semibold ${config.color} flex-1 text-left`}>{config.label}</span>
-              <ChevronDown size={12} className={`text-[#94A3B8] transition-transform ${roleMenuOpen ? "rotate-180" : ""}`} />
-            </button>
-            {roleMenuOpen && (
-              <div className="mt-1 bg-white border border-[#E2E8F0] rounded-lg shadow-sm overflow-hidden slide-down">
-                {(["user", "camp_manager", "camp_team_member", "admin"] as UserRole[]).map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => { onRoleSwitch(r); setRoleMenuOpen(false); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[#F8FAFC] transition-colors ${r === role ? "bg-[#F8FAFC]" : ""}`}
-                  >
-                    <Shield size={12} className={roleConfig[r].color} />
-                    <span className="text-[#334155]">{roleConfig[r].label}</span>
-                    {r === role && <Check size={12} className="ml-auto text-[#2563EB]" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Nav items */}
         <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
           {Object.entries(sectionGroups).map(([section, items]) => (
@@ -240,7 +205,7 @@ export function Layout({
 
         {/* User profile at bottom */}
         <div className="px-3 py-3 border-t border-[#F1F5F9]">
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F8FAFC] cursor-pointer group" onClick={() => onNavigate(role === "admin" ? "admin_settings" : role === "camp_manager" ? "camp_profile" : "profile")}>
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F8FAFC] cursor-pointer group" onClick={() => onNavigate(role === "admin" ? "admin_settings" : role === "camp_manager" || role === "camp_team_member" ? "camp_profile" : "profile")}>
             <Avatar name={userName} size="sm" online={true} />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-[#0F172A] truncate">{userName}</p>
@@ -345,14 +310,5 @@ export function Layout({
         </main>
       </div>
     </div>
-  );
-}
-
-// Helper icons for Check
-function Check({ size, className }: { size: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
   );
 }
