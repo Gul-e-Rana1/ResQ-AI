@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Analytics } from "@vercel/analytics/next";
 import "@/index.css";
 import { AppProviders } from "@/providers/AppProviders";
 
@@ -25,6 +26,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AppProviders>{children}</AppProviders>
+        <Analytics />
       </body>
     </html>
   );
