@@ -66,23 +66,23 @@ const colorMap: Record<string, string> = {
 
 const testimonials = [
   {
-    name: "Priya Sharma",
+    name: "Ayesha Malik",
     role: "Flood Survivor",
-    location: "Chennai, India",
+    location: "Multan, Punjab",
     text: "ResQ AI found a camp 1.4km away within seconds. The response team arrived in 9 minutes. I don't know what I would've done without it.",
     stars: 5,
   },
   {
-    name: "Marcus Chen",
-    role: "Earthquake Victim",
-    location: "Türkiye",
+    name: "Bilal Hussain",
+    role: "Earthquake Survivor",
+    location: "Mansehra, Khyber Pakhtunkhwa",
     text: "The AI assistant told me exactly what to do step by step. The emergency team had my details before they even arrived. Incredible platform.",
     stars: 5,
   },
   {
-    name: "Amara Diallo",
-    role: "Wildfire Evacuee",
-    location: "California, USA",
+    name: "Sana Baloch",
+    role: "Displaced Family",
+    location: "Quetta, Balochistan",
     text: "I found my family's emergency camp assignment on the map within 2 minutes of registering. Clear, calm, and incredibly well designed.",
     stars: 5,
   },

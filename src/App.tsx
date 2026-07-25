@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Layout, type UserRole, type PageId } from "./components/Layout";
 import { ToastContainer, useToast } from "./components/ui";
 import { canAccessPage, getDashboardForRole, toShellRole } from "./lib/auth/roles";
 import { useAuth } from "./providers/AuthProvider";
+import { useRealtimeNotifications } from "./hooks/useRealtimeNotifications";
+import { useRealtimeEmergencies } from "./hooks/useRealtimeEmergencies";
+import { useRealtimeCamps } from "./hooks/useRealtimeCamps";
+import { useMyCamp } from "./hooks/useMyCamp";
+import { markNotificationAsRead } from "./lib/services/notifications";
 import type { UserProfile } from "./types/auth";
 
 // Pages 
@@ -41,9 +46,42 @@ function getProfileName(profile: UserProfile | null) {
 
 export default function App() {
   const [page, setPage] = useState<PageId>("landing");
+  const [selectedEmergencyId, setSelectedEmergencyId] = useState<string | null>(null);
   const { profile, user, loading: authLoading, signOut } = useAuth();
   const { toasts, addToast, removeToast } = useToast();
   const role = toShellRole(profile?.role) as UserRole;
+
+  const notificationsQuery = useRealtimeNotifications(user?.id);
+  const { data: myCamp } = useMyCamp();
+
+  const myEmergenciesQuery = useRealtimeEmergencies({
+    requesterId: user?.id,
+    enabled: !!user?.id && role === "user",
+  });
+  const campEmergenciesQuery = useRealtimeEmergencies({
+    assignedCampId: myCamp?.id,
+    enabled: !!myCamp?.id && (role === "camp_manager" || role === "camp_team_member"),
+  });
+  const pendingCampsQuery = useRealtimeCamps({
+    status: "pending",
+    enabled: role === "admin",
+  });
+
+  const badges = useMemo(() => {
+    const ACTIVE_STATUSES = new Set(["Submitted", "Assigned", "Accepted", "En Route", "Arrived"]);
+    const result: Record<string, number> = {};
+
+    const myActive = (myEmergenciesQuery.data || []).filter((e) => ACTIVE_STATUSES.has(e.status)).length;
+    if (myActive > 0) result.my_emergencies = myActive;
+
+    const campPending = (campEmergenciesQuery.data || []).filter((e) => ACTIVE_STATUSES.has(e.status)).length;
+    if (campPending > 0) result.camp_emergency_requests = campPending;
+
+    const pendingCamps = (pendingCampsQuery.data || []).length;
+    if (pendingCamps > 0) result.admin_approvals = pendingCamps;
+
+    return result;
+  }, [myEmergenciesQuery.data, campEmergenciesQuery.data, pendingCampsQuery.data]);
 
   const changePage = (target: PageId, updateHistory = true) => {
     setPage(target);
@@ -73,7 +111,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const navigate = (target: PageId) => {
+  const navigate = (target: PageId, id?: string) => {
     if (!PUBLIC_PAGES.has(target) && !user) {
       addToast("info", "Please sign in to continue");
       changePage("login");
@@ -86,7 +124,16 @@ export default function App() {
       return;
     }
 
+    if (target === "emergency_details" || target === "camp_emergency_details") {
+      setSelectedEmergencyId(id ?? null);
+    }
+
     changePage(target);
+  };
+
+  const handleNotificationClick = async (notificationId: string, read: boolean) => {
+    if (read) return;
+    await markNotificationAsRead(notificationId);
   };
 
   const handleLogout = async () => {
@@ -135,7 +182,7 @@ export default function App() {
       case "my_emergencies":
         return <MyEmergencies onNavigate={navigate} />;
       case "emergency_details":
-        return <EmergencyDetails onNavigate={navigate} />;
+        return <EmergencyDetails onNavigate={navigate} emergencyId={selectedEmergencyId} />;
       case "create_emergency":
         return <CreateEmergency onNavigate={navigate} />;
       case "ai_chat":
@@ -155,8 +202,9 @@ export default function App() {
       case "camp_dashboard":
         return <CampDashboard onNavigate={navigate} />;
       case "camp_emergency_requests":
-      case "camp_emergency_details":
         return <EmergencyRequests onNavigate={navigate} />;
+      case "camp_emergency_details":
+        return <EmergencyRequests onNavigate={navigate} initialEmergencyId={selectedEmergencyId ?? undefined} />;
       case "camp_team":
         return <TeamMembers />;
       case "camp_details_mgmt":
@@ -207,7 +255,9 @@ export default function App() {
           onLogout={handleLogout}
           userName={displayName}
           userEmail={displayEmail}
-          notifications={3}
+          notifications={notificationsQuery.data || []}
+          onNotificationClick={handleNotificationClick}
+          badges={badges}
           onRoleSwitch={profile?.role === "admin" ? handleRoleSwitch : undefined}
         >
           {renderPage()}

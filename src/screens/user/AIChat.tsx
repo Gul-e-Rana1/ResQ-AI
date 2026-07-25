@@ -1,17 +1,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  MessageSquare, Send, Zap, MapPin, AlertTriangle, Shield, ChevronRight,
-  RotateCcw, Bot, User, Loader2
+  Send, MapPin, ChevronRight, RotateCcw, Bot, User, Loader2, Zap
 } from "lucide-react";
-import { Card, Badge, RiskLevel, Button } from "../../components/ui";
+import { Badge } from "../../components/ui";
 import { sanitizeAndFormatMarkdown } from "../../lib/security";
+import { sendAiChatMessage } from "@/lib/services/ai";
+import { recommendCamps, type CampRecommendation } from "@/lib/services/camps";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import { DISASTER_TYPES } from "@/lib/constants/pakistan";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: string;
-  type?: "text" | "camps" | "guidance" | "risk";
+  type?: "text" | "camps";
+  camps?: CampRecommendation[];
 }
 
 const suggestedPrompts = [
@@ -23,30 +27,6 @@ const suggestedPrompts = [
   "How do I evacuate safely?",
 ];
 
-const botResponses: Record<string, Message> = {
-  flood: {
-    id: "r1",
-    role: "assistant",
-    content: "During a flood emergency, here's what you should do:\n\n**Immediate Actions:**\n• Move to higher ground immediately\n• Avoid walking or driving through flood water\n• Stay away from streams, drainage channels, and rivers\n\n**Stay Safe:**\n• Turn off utilities at the main breaker/valve\n• Disconnect electrical appliances\n• Never touch electrical equipment if wet\n\n**I've detected 3 camps near your location with available capacity:**",
-    timestamp: "Now",
-    type: "camps",
-  },
-  risk: {
-    id: "r2",
-    role: "assistant",
-    content: "Based on your registered location in **Sector 14, New Delhi**, here's the current risk assessment:\n\n**Active Alerts:** Flash flood warning in effect until 8:00 PM\n**Risk Level:** High\n\nI recommend staying indoors and having an emergency bag ready.",
-    timestamp: "Now",
-    type: "risk",
-  },
-  default: {
-    id: "r3",
-    role: "assistant",
-    content: "I understand you need assistance. I'm here to help you navigate emergency situations. You can ask me about:\n\n• Nearby relief camps and their availability\n• Emergency guidance for different disaster types\n• How to submit an emergency request\n• Risk level assessment for your area\n• Emergency preparedness tips\n\nWhat would you like to know?",
-    timestamp: "Now",
-    type: "text",
-  },
-};
-
 const initialMessages: Message[] = [
   {
     id: "init",
@@ -57,14 +37,8 @@ const initialMessages: Message[] = [
   },
 ];
 
-const nearbyCampsData = [
-  { name: "Camp Alpha", distance: "1.2 km", available: 120, status: "active" },
-  { name: "Camp Beta", distance: "2.8 km", available: 10, status: "active" },
-  { name: "Camp Delta", distance: "3.5 km", available: 135, status: "active" },
-];
-
 interface Props {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, id?: string) => void;
 }
 
 export default function AIChat({ onNavigate }: Props) {
@@ -72,12 +46,18 @@ export default function AIChat({ onNavigate }: Props) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { coords, locate } = useGeolocation();
+
+  useEffect(() => {
+    locate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = (text: string) => {
+  const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
 
     const userMsg: Message = {
@@ -87,24 +67,53 @@ export default function AIChat({ onNavigate }: Props) {
       timestamp: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages((p) => [...p, userMsg]);
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
     setLoading(true);
 
-    setTimeout(() => {
-      const lower = text.toLowerCase();
-      let response = { ...botResponses.default, id: Date.now().toString() + "r" };
+    try {
+      const res = await sendAiChatMessage(
+        history.map((m) => ({ role: m.role, content: m.content })),
+      );
 
-      if (lower.includes("flood") || lower.includes("water")) {
-        response = { ...botResponses.flood, id: Date.now().toString() + "r" };
-      } else if (lower.includes("risk") || lower.includes("danger") || lower.includes("area")) {
-        response = { ...botResponses.risk, id: Date.now().toString() + "r" };
+      let campRecs: CampRecommendation[] = [];
+      if (res.topicAllowed && res.disasterType && coords) {
+        const matchedDisasterType = DISASTER_TYPES.find((d) => d === res.disasterType);
+        if (matchedDisasterType) {
+          try {
+            campRecs = await recommendCamps({
+              disasterType: matchedDisasterType,
+              userLocation: coords,
+              limit: 3,
+            });
+          } catch {
+            campRecs = [];
+          }
+        }
       }
 
-      response.timestamp = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-      setMessages((p) => [...p, response]);
+      const assistantMsg: Message = {
+        id: Date.now().toString() + "-r",
+        role: "assistant",
+        content: res.reply,
+        timestamp: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        type: campRecs.length > 0 ? "camps" : "text",
+        camps: campRecs,
+      };
+      setMessages((p) => [...p, assistantMsg]);
+    } catch {
+      const errorMsg: Message = {
+        id: Date.now().toString() + "-e",
+        role: "assistant",
+        content: "Sorry, the AI assistant is temporarily unavailable, please try again.",
+        timestamp: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        type: "text",
+      };
+      setMessages((p) => [...p, errorMsg]);
+    } finally {
       setLoading(false);
-    }, 1400);
+    }
   };
 
   return (
@@ -167,21 +176,22 @@ export default function AIChat({ onNavigate }: Props) {
               </div>
 
               {/* Camp cards */}
-              {msg.type === "camps" && (
+              {msg.type === "camps" && msg.camps && msg.camps.length > 0 && (
                 <div className="space-y-2 w-full">
-                  {nearbyCampsData.map((camp, i) => (
+                  {msg.camps.map((rec) => (
                     <div
-                      key={i}
+                      key={rec.camp.id}
                       className="bg-white border border-[#E2E8F0] rounded-xl p-3 hover:border-[#CBD5E1] hover:shadow-sm cursor-pointer transition-all group"
-                      onClick={() => onNavigate("camp_details")}
+                      onClick={() => onNavigate("camp_details", rec.camp.id)}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-[#0F172A]">{camp.name}</p>
+                          <p className="text-sm font-semibold text-[#0F172A]">{rec.camp.name}</p>
                           <p className="text-xs text-[#64748B] flex items-center gap-1 mt-0.5">
-                            <MapPin size={10} /> {camp.distance} ·{" "}
-                            <span className={camp.available > 50 ? "text-[#059669]" : "text-[#EA580C]"}>
-                              {camp.available} spots available
+                            <MapPin size={10} />{" "}
+                            {rec.distanceKm !== null ? `${rec.distanceKm.toFixed(1)} km` : `${rec.camp.district}, ${rec.camp.province}`} ·{" "}
+                            <span className={rec.camp.capacity_available > 20 ? "text-[#059669]" : "text-[#EA580C]"}>
+                              {rec.camp.capacity_available} spots available
                             </span>
                           </p>
                         </div>
@@ -196,25 +206,6 @@ export default function AIChat({ onNavigate }: Props) {
                     View all camps on map →
                   </button>
                 </div>
-              )}
-
-              {/* Risk card */}
-              {msg.type === "risk" && (
-                <Card padding="sm" className="w-full">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield size={14} className="text-[#EA580C]" />
-                    <span className="text-xs font-semibold text-[#334155]">Risk Assessment</span>
-                  </div>
-                  <RiskLevel level="high" />
-                  <div className="mt-2.5 flex gap-2">
-                    <Button size="xs" onClick={() => onNavigate("create_emergency")} icon={<AlertTriangle size={10} />}>
-                      Request Help
-                    </Button>
-                    <Button size="xs" variant="secondary" onClick={() => onNavigate("nearby_camps")} icon={<MapPin size={10} />}>
-                      Find Camps
-                    </Button>
-                  </div>
-                </Card>
               )}
 
               <p className="text-[10px] text-[#94A3B8]">{msg.timestamp}</p>
