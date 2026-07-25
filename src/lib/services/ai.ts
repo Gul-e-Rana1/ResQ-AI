@@ -6,6 +6,7 @@ export interface AiChatMessage {
 export interface AiChatResponse {
   reply: string;
   topicAllowed: boolean;
+  isEmergency: boolean;
   disasterType: string | null;
   urgency: string | null;
   language: string;
