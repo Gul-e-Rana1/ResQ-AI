@@ -66,6 +66,22 @@ export async function fetchReliefCamps(params?: {
   return (data as ReliefCampRecord[]) || [];
 }
 
+export async function fetchCampByManagerId(managerId: string): Promise<ReliefCampRecord | null> {
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("relief_camps")
+    .select("*")
+    .eq("manager_id", managerId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Failed to fetch camp by manager:", error.message);
+    return null;
+  }
+
+  return data as ReliefCampRecord | null;
+}
+
 export async function fetchCampById(id: string): Promise<ReliefCampRecord | null> {
   const supabase = createSupabaseBrowserClient();
   const { data, error } = await supabase
@@ -159,6 +175,85 @@ export async function updateCampStatus(
   }
 
   return true;
+}
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+export interface CampRecommendation {
+  camp: ReliefCampRecord;
+  score: number;
+  distanceKm: number | null;
+}
+
+export async function recommendCamps(input: {
+  disasterType: DisasterType;
+  requiredSupplies?: string[];
+  userLocation?: { latitude: number; longitude: number };
+  limit?: number;
+}): Promise<CampRecommendation[]> {
+  const supabase = createSupabaseBrowserClient();
+  const camps = await fetchReliefCamps({ status: "approved", acceptingOnly: true });
+  const candidates = camps.filter((c) => c.capacity_available > 0);
+
+  let suppliesByCamp = new Map<string, Set<string>>();
+  if (input.requiredSupplies && input.requiredSupplies.length > 0 && candidates.length > 0) {
+    const { data: supplies } = await supabase
+      .from("camp_supplies")
+      .select("camp_id, category, name, quantity")
+      .in(
+        "camp_id",
+        candidates.map((c) => c.id),
+      )
+      .gt("quantity", 0);
+
+    suppliesByCamp = (supplies || []).reduce((map, row) => {
+      const set = map.get(row.camp_id) || new Set<string>();
+      set.add(String(row.category).toLowerCase());
+      set.add(String(row.name).toLowerCase());
+      map.set(row.camp_id, set);
+      return map;
+    }, new Map<string, Set<string>>());
+  }
+
+  const scored: CampRecommendation[] = candidates.map((camp) => {
+    const distanceKm = input.userLocation
+      ? haversineKm(
+          input.userLocation.latitude,
+          input.userLocation.longitude,
+          camp.latitude,
+          camp.longitude,
+        )
+      : null;
+
+    const supportsDisaster = camp.supported_disasters.includes(input.disasterType);
+    const capacityRatio = camp.capacity_total > 0 ? camp.capacity_available / camp.capacity_total : 0;
+
+    let supplyMatchRatio = 0;
+    if (input.requiredSupplies && input.requiredSupplies.length > 0) {
+      const campSupplies = suppliesByCamp.get(camp.id) || new Set<string>();
+      const matches = input.requiredSupplies.filter((s) => campSupplies.has(s.toLowerCase()));
+      supplyMatchRatio = matches.length / input.requiredSupplies.length;
+    }
+
+    let score = 0;
+    if (supportsDisaster) score += 40;
+    score += capacityRatio * 25;
+    score += supplyMatchRatio * 20;
+    score += distanceKm !== null ? Math.max(0, 15 - distanceKm / 2) : 7;
+
+    return { camp, score, distanceKm };
+  });
+
+  return scored.sort((a, b) => b.score - a.score).slice(0, input.limit ?? 5);
 }
 
 export function subscribeToCamps(onChange: (payload: unknown) => void) {
