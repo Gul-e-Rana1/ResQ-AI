@@ -1,49 +1,39 @@
-import React, { useState } from "react";
-import { MapPin, Navigation, Zap, Shield, Home, AlertTriangle, X, ExternalLink } from "lucide-react";
-import { Badge, StatusChip } from "./ui";
+import React, { useMemo, useState } from "react";
+import { MapPin, Navigation, Shield, Home, AlertTriangle, X, ExternalLink } from "lucide-react";
+import { Badge } from "./ui";
 
-interface Camp {
+export interface MapCamp {
   id: string;
   name: string;
-  lat: number;
-  lng: number;
+  latitude: number;
+  longitude: number;
   capacity: number;
   occupied: number;
   status: "active" | "inactive" | "full";
-  distance: string;
   address: string;
   type: "primary" | "secondary" | "emergency";
 }
 
-interface Emergency {
+export interface MapEmergency {
   id: string;
-  lat: number;
-  lng: number;
-  status: string;
-  type: string;
+  latitude: number;
+  longitude: number;
+  status?: string;
 }
 
 interface MapViewProps {
-  camps?: Camp[];
-  emergencies?: Emergency[];
-  showUserLocation?: boolean;
+  camps?: MapCamp[];
+  emergencies?: MapEmergency[];
+  userLocation?: { latitude: number; longitude: number } | null;
   height?: string;
-  onCampClick?: (camp: Camp) => void;
+  onCampClick?: (camp: MapCamp) => void;
   className?: string;
 }
 
-const defaultCamps: Camp[] = [
-  { id: "c1", name: "Camp Alpha", lat: 40, lng: 30, capacity: 500, occupied: 380, status: "active", distance: "1.2 km", address: "123 Relief Rd, Sector 4", type: "primary" },
-  { id: "c2", name: "Camp Beta", lat: 65, lng: 55, capacity: 300, occupied: 290, status: "active", distance: "2.8 km", address: "45 Emergency Ave, Block B", type: "secondary" },
-  { id: "c3", name: "Camp Delta", lat: 30, lng: 70, capacity: 200, occupied: 65, status: "active", distance: "3.5 km", address: "78 Crisis Blvd, Zone 2", type: "emergency" },
-  { id: "c4", name: "Camp Sigma", lat: 75, lng: 20, capacity: 400, occupied: 400, status: "full", distance: "4.1 km", address: "200 North Relief St, Area 6", type: "primary" },
-  { id: "c5", name: "Camp Omega", lat: 55, lng: 80, capacity: 350, occupied: 120, status: "active", distance: "5.6 km", address: "9 Westside Camp, District 3", type: "secondary" },
-];
-
 const campColors = {
-  active: { marker: "#059669", ring: "#D1FAE5", label: "Active" },
-  full: { marker: "#DC2626", ring: "#FECACA", label: "Full" },
-  inactive: { marker: "#94A3B8", ring: "#E2E8F0", label: "Inactive" },
+  active: { marker: "#059669", label: "Active" },
+  full: { marker: "#DC2626", label: "Full" },
+  inactive: { marker: "#94A3B8", label: "Inactive" },
 };
 
 const campTypeIcons = {
@@ -58,8 +48,8 @@ const campTypeColors = {
   emergency: "bg-[#EA580C]",
 };
 
-// Fake map roads SVG paths
-const roads = [
+// Decorative background art (roads/blocks) — purely visual, not derived from data.
+const decorativeRoads = [
   "M 0 45 Q 25 40 50 50 Q 75 60 100 45",
   "M 20 0 Q 25 25 30 50 Q 35 75 20 100",
   "M 0 70 Q 40 65 80 75 Q 90 78 100 70",
@@ -68,16 +58,74 @@ const roads = [
   "M 30 0 Q 35 20 50 40 Q 65 60 60 100",
 ];
 
-export function MapView({ camps = defaultCamps, emergencies = [], showUserLocation = true, height = "400px", onCampClick, className = "" }: MapViewProps) {
-  const [selectedCamp, setSelectedCamp] = useState<Camp | null>(null);
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+// Pakistan bounding box, used as a fallback so the map has a sensible default extent
+// when there isn't enough real data yet to derive one.
+const FALLBACK_BOUNDS = { minLat: 28.5, maxLat: 34.5, minLng: 69.5, maxLng: 75.5 };
+
+function project(lat: number, lng: number, bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) {
+  const latSpan = bounds.maxLat - bounds.minLat || 1;
+  const lngSpan = bounds.maxLng - bounds.minLng || 1;
+  const x = 10 + ((lng - bounds.minLng) / lngSpan) * 80;
+  const y = 10 + ((bounds.maxLat - lat) / latSpan) * 80;
+  return { x: Math.min(95, Math.max(5, x)), y: Math.min(95, Math.max(5, y)) };
+}
+
+export function MapView({
+  camps = [],
+  emergencies = [],
+  userLocation = null,
+  height = "400px",
+  onCampClick,
+  className = "",
+}: MapViewProps) {
+  const [selectedCamp, setSelectedCamp] = useState<MapCamp | null>(null);
   const [hoveredCamp, setHoveredCamp] = useState<string | null>(null);
 
-  const handleCampClick = (camp: Camp) => {
+  const bounds = useMemo(() => {
+    const points: { lat: number; lng: number }[] = [
+      ...camps.map((c) => ({ lat: c.latitude, lng: c.longitude })),
+      ...emergencies.map((e) => ({ lat: e.latitude, lng: e.longitude })),
+      ...(userLocation ? [{ lat: userLocation.latitude, lng: userLocation.longitude }] : []),
+    ].filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+
+    if (points.length === 0) return FALLBACK_BOUNDS;
+
+    const lats = points.map((p) => p.lat);
+    const lngs = points.map((p) => p.lng);
+    const pad = 0.05;
+    const minLat = Math.min(...lats) - pad;
+    const maxLat = Math.max(...lats) + pad;
+    const minLng = Math.min(...lngs) - pad;
+    const maxLng = Math.max(...lngs) + pad;
+
+    return {
+      minLat,
+      maxLat: maxLat > minLat ? maxLat : minLat + 0.1,
+      minLng,
+      maxLng: maxLng > minLng ? maxLng : minLng + 0.1,
+    };
+  }, [camps, emergencies, userLocation]);
+
+  const handleCampClick = (camp: MapCamp) => {
     setSelectedCamp(camp);
     onCampClick?.(camp);
   };
 
-  const occupancyPct = (camp: Camp) => Math.round((camp.occupied / camp.capacity) * 100);
+  const occupancyPct = (camp: MapCamp) =>
+    camp.capacity > 0 ? Math.round((camp.occupied / camp.capacity) * 100) : 0;
+
+  const distanceToCamp = (camp: MapCamp) =>
+    userLocation ? haversineKm(userLocation.latitude, userLocation.longitude, camp.latitude, camp.longitude) : null;
 
   return (
     <div
@@ -86,18 +134,9 @@ export function MapView({ camps = defaultCamps, emergencies = [], showUserLocati
     >
       {/* Map background layers */}
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {/* Background */}
         <rect width="100" height="100" fill="#EDF4ED" />
-
-        {/* Water body */}
-        <ellipse cx="85" cy="85" rx="18" ry="14" fill="#D4E8F4" />
-        <text x="80" y="87" fontSize="3" fill="#94C8E4" textAnchor="middle" style={{ userSelect: "none" }}>Lake</text>
-
-        {/* Parks */}
         <rect x="5" y="5" width="18" height="12" rx="2" fill="#C8E6C9" />
         <rect x="40" y="60" width="14" height="10" rx="2" fill="#C8E6C9" />
-
-        {/* City blocks */}
         {[
           [10, 25, 12, 10], [25, 25, 10, 10], [38, 25, 12, 10],
           [55, 25, 10, 10], [68, 25, 12, 10],
@@ -108,25 +147,12 @@ export function MapView({ camps = defaultCamps, emergencies = [], showUserLocati
         ].map(([x, y, w, h], i) => (
           <rect key={i} x={x} y={y} width={w} height={h} rx="0.5" fill="#E8EDF0" stroke="#D4DAE0" strokeWidth="0.2" />
         ))}
-
-        {/* Roads */}
-        {roads.map((d, i) => (
+        {decorativeRoads.map((d, i) => (
           <path key={i} d={d} stroke="#FFFFFF" strokeWidth={i % 2 === 0 ? "1.2" : "0.8"} fill="none" strokeLinecap="round" />
         ))}
-
-        {/* Highway */}
         <path d="M 0 50 Q 50 48 100 52" stroke="#F5E6A3" strokeWidth="2" fill="none" />
         <path d="M 0 50 Q 50 48 100 52" stroke="#E6C800" strokeWidth="0.3" fill="none" strokeDasharray="3,2" />
       </svg>
-
-      {/* Scale bar */}
-      <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-2.5 py-1.5 rounded-lg text-[10px] text-[#64748B] border border-[#E2E8F0] shadow-sm">
-        <div className="w-8 h-1 bg-[#334155] rounded-full relative">
-          <div className="absolute -top-0.5 left-0 w-px h-2 bg-[#334155]" />
-          <div className="absolute -top-0.5 right-0 w-px h-2 bg-[#334155]" />
-        </div>
-        <span>2 km</span>
-      </div>
 
       {/* Compass */}
       <div className="absolute top-3 right-3 w-7 h-7 bg-white/80 backdrop-blur-sm rounded-full border border-[#E2E8F0] shadow-sm flex items-center justify-center">
@@ -140,26 +166,32 @@ export function MapView({ camps = defaultCamps, emergencies = [], showUserLocati
       </div>
 
       {/* Emergency markers */}
-      {emergencies.map((em) => (
-        <div
-          key={em.id}
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10"
-          style={{ left: `${em.lat}%`, top: `${em.lng}%` }}
-        >
-          <div className="relative">
-            <div className="absolute -inset-2 bg-[#DC2626]/20 rounded-full animate-ping" />
-            <div className="w-6 h-6 bg-[#DC2626] rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-              <AlertTriangle size={10} className="text-white" />
+      {emergencies.map((em) => {
+        const pos = project(em.latitude, em.longitude, bounds);
+        return (
+          <div
+            key={em.id}
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10"
+            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+          >
+            <div className="relative">
+              <div className="absolute -inset-2 bg-[#DC2626]/20 rounded-full animate-ping" />
+              <div className="w-6 h-6 bg-[#DC2626] rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                <AlertTriangle size={10} className="text-white" />
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* User location */}
-      {showUserLocation && (
+      {userLocation && (
         <div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
-          style={{ left: "50%", top: "55%" }}
+          style={{
+            left: `${project(userLocation.latitude, userLocation.longitude, bounds).x}%`,
+            top: `${project(userLocation.latitude, userLocation.longitude, bounds).y}%`,
+          }}
         >
           <div className="relative">
             <div className="absolute -inset-3 bg-[#2563EB]/15 rounded-full" />
@@ -176,20 +208,21 @@ export function MapView({ camps = defaultCamps, emergencies = [], showUserLocati
 
       {/* Camp markers */}
       {camps.map((camp) => {
+        const pos = project(camp.latitude, camp.longitude, bounds);
         const colors = campColors[camp.status];
         const typeColor = campTypeColors[camp.type];
         const isSelected = selectedCamp?.id === camp.id;
         const isHovered = hoveredCamp === camp.id;
+        const distanceKm = distanceToCamp(camp);
         return (
           <div
             key={camp.id}
             className="absolute transform -translate-x-1/2 -translate-y-full z-10 cursor-pointer"
-            style={{ left: `${camp.lat}%`, top: `${camp.lng}%` }}
+            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             onClick={() => handleCampClick(camp)}
             onMouseEnter={() => setHoveredCamp(camp.id)}
             onMouseLeave={() => setHoveredCamp(null)}
           >
-            {/* Marker */}
             <div className={`relative transition-transform duration-150 ${isSelected || isHovered ? "scale-125" : ""}`}>
               <div
                 className={`w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center ${typeColor}`}
@@ -197,7 +230,6 @@ export function MapView({ camps = defaultCamps, emergencies = [], showUserLocati
               >
                 {campTypeIcons[camp.type]}
               </div>
-              {/* Pin point */}
               <div
                 className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0"
                 style={{
@@ -208,11 +240,12 @@ export function MapView({ camps = defaultCamps, emergencies = [], showUserLocati
               />
             </div>
 
-            {/* Label */}
             {(isHovered || isSelected) && (
               <div className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-white border border-[#E2E8F0] rounded-lg px-2.5 py-2 shadow-lg text-center whitespace-nowrap min-w-32 slide-down z-30">
                 <p className="text-xs font-semibold text-[#0F172A]">{camp.name}</p>
-                <p className="text-[10px] text-[#64748B] mt-0.5">{camp.distance} away</p>
+                {distanceKm !== null && (
+                  <p className="text-[10px] text-[#64748B] mt-0.5">{distanceKm.toFixed(1)} km away</p>
+                )}
                 <div className="mt-1.5 w-full bg-[#F1F5F9] rounded-full h-1">
                   <div
                     className="h-1 rounded-full transition-all"
@@ -269,15 +302,26 @@ export function MapView({ camps = defaultCamps, emergencies = [], showUserLocati
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <Badge variant={selectedCamp.status === "active" ? "green" : selectedCamp.status === "full" ? "red" : "gray"} dot>
               {campColors[selectedCamp.status].label}
             </Badge>
-            <span className="text-xs text-[#64748B] flex items-center gap-1">
-              <MapPin size={10} />
-              {selectedCamp.distance}
-            </span>
+            {distanceToCamp(selectedCamp) !== null && (
+              <span className="text-xs text-[#64748B] flex items-center gap-1">
+                <MapPin size={10} />
+                {distanceToCamp(selectedCamp)!.toFixed(1)} km
+              </span>
+            )}
           </div>
+
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCamp.latitude},${selectedCamp.longitude}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-lg py-2 transition-colors"
+          >
+            Navigate <ExternalLink size={11} />
+          </a>
         </div>
       )}
 
@@ -289,9 +333,11 @@ export function MapView({ camps = defaultCamps, emergencies = [], showUserLocati
         <div className="flex items-center gap-1 text-[10px] text-[#64748B]">
           <div className="w-2.5 h-2.5 rounded-full bg-[#DC2626]" /> Full
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-[#64748B]">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]" /> You
-        </div>
+        {userLocation && (
+          <div className="flex items-center gap-1 text-[10px] text-[#64748B]">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]" /> You
+          </div>
+        )}
       </div>
     </div>
   );
