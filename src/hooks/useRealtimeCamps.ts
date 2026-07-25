@@ -14,8 +14,10 @@ export function useRealtimeCamps(params?: {
   province?: string;
   district?: string;
   acceptingOnly?: boolean;
+  enabled?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const enabled = params?.enabled ?? true;
   const queryKey = [
     "relief_camps",
     params?.status,
@@ -28,9 +30,12 @@ export function useRealtimeCamps(params?: {
     queryKey,
     queryFn: () => fetchReliefCamps(params),
     staleTime: 30_000,
+    enabled,
   });
 
   useEffect(() => {
+    if (!enabled) return;
+
     const unsubscribe = subscribeToCamps(() => {
       queryClient.invalidateQueries({ queryKey: ["relief_camps"] });
     });
@@ -38,7 +43,7 @@ export function useRealtimeCamps(params?: {
     return () => {
       unsubscribe();
     };
-  }, [queryClient]);
+  }, [queryClient, enabled]);
 
   return query;
 }

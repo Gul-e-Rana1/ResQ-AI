@@ -14,8 +14,10 @@ export function useRealtimeEmergencies(params?: {
   assignedCampId?: string;
   status?: EmergencyStatus;
   limit?: number;
+  enabled?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const enabled = params?.enabled ?? true;
   const queryKey = [
     "emergencies",
     params?.requesterId,
@@ -28,9 +30,12 @@ export function useRealtimeEmergencies(params?: {
     queryKey,
     queryFn: () => fetchEmergencies(params),
     staleTime: 10_000,
+    enabled,
   });
 
   useEffect(() => {
+    if (!enabled) return;
+
     const unsubscribe = subscribeToEmergencies(() => {
       queryClient.invalidateQueries({ queryKey: ["emergencies"] });
     });
@@ -38,7 +43,7 @@ export function useRealtimeEmergencies(params?: {
     return () => {
       unsubscribe();
     };
-  }, [queryClient]);
+  }, [queryClient, enabled]);
 
   return query;
 }
