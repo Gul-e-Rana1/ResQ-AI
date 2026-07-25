@@ -85,8 +85,7 @@ export async function addTeamMemberByEmail(input: {
   await supabase
     .from("profiles")
     .update({ role: "camp_team_member" })
-    .eq("id", profile.id)
-    .eq("role", "registered_user");
+    .eq("id", profile.id);
 
   return { ok: true };
 }
