@@ -45,35 +45,55 @@ export default function App() {
   const { toasts, addToast, removeToast } = useToast();
   const role = toShellRole(profile?.role) as UserRole;
 
+  const changePage = (target: PageId, updateHistory = true) => {
+    setPage(target);
+    if (updateHistory && typeof window !== "undefined") {
+      const currentParam = new URLSearchParams(window.location.search).get("page") || "landing";
+      if (currentParam !== target) {
+        const url = target === "landing" ? "/" : `/?page=${encodeURIComponent(target)}`;
+        window.history.pushState({ page: target }, "", url);
+      }
+    }
+  };
+
   useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const requestedPage = (params.get("page") as PageId) || "landing";
+      setPage(requestedPage);
+    };
+
     const params = new URLSearchParams(window.location.search);
-    const requestedPage = params.get("page");
+    const requestedPage = params.get("page") as PageId | null;
     if (requestedPage) {
       setPage(requestedPage);
     }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const navigate = (target: PageId) => {
     if (!PUBLIC_PAGES.has(target) && !user) {
       addToast("info", "Please sign in to continue");
-      setPage("login");
+      changePage("login");
       return;
     }
 
     if (user && !canAccessPage(profile?.role, target)) {
       addToast("warning", "You do not have access to that area");
-      setPage(getDashboardForRole(profile?.role));
+      changePage(getDashboardForRole(profile?.role) as PageId);
       return;
     }
 
-    setPage(target);
+    changePage(target);
   };
 
   const handleLogout = async () => {
     try {
       await signOut();
       addToast("success", "Signed out successfully");
-      setPage("landing");
+      changePage("landing");
     } catch (error) {
       addToast("error", error instanceof Error ? error.message : "Unable to sign out");
     }
@@ -85,9 +105,9 @@ export default function App() {
       return;
     }
 
-    if (newRole === "user") setPage("user_dashboard");
-    else if (newRole === "camp_manager" || newRole === "camp_team_member") setPage("camp_dashboard");
-    else if (newRole === "admin") setPage("admin_dashboard");
+    if (newRole === "user") changePage("user_dashboard");
+    else if (newRole === "camp_manager" || newRole === "camp_team_member") changePage("camp_dashboard");
+    else if (newRole === "admin") changePage("admin_dashboard");
   };
 
   // Render page content

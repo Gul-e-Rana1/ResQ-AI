@@ -235,3 +235,5 @@ export default function ProfileSettings({ onNavigate, page }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

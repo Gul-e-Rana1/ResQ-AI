@@ -4,6 +4,7 @@ import {
   RotateCcw, Bot, User, Loader2
 } from "lucide-react";
 import { Card, Badge, RiskLevel, Button } from "../../components/ui";
+import { sanitizeAndFormatMarkdown } from "../../lib/security";
 
 interface Message {
   id: string;
@@ -157,9 +158,12 @@ export default function AIChat({ onNavigate }: Props) {
                     : "bg-white border border-[#E2E8F0] text-[#334155] rounded-tl-sm shadow-sm"
                   }`}
               >
-                <div className="whitespace-pre-line" dangerouslySetInnerHTML={{
-                  __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')
-                }} />
+                <div
+                  className="whitespace-pre-line"
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeAndFormatMarkdown(msg.content),
+                  }}
+                />
               </div>
 
               {/* Camp cards */}
@@ -296,3 +300,5 @@ export default function AIChat({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });

@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import {
   AlertTriangle, Users, CheckCircle, Clock, Activity, ChevronRight,
@@ -7,6 +8,7 @@ import { Card, StatCard, Badge, StatusChip, Button, Avatar } from "../../compone
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line
 } from "recharts";
+import { useRealtimeEmergencies } from "@/hooks/useRealtimeEmergencies";
 
 const weeklyData = [
   { day: "Mon", received: 8, resolved: 6 },
@@ -18,7 +20,7 @@ const weeklyData = [
   { day: "Sun", received: 6, resolved: 5 },
 ];
 
-const pendingRequests = [
+const mockPendingRequests = [
   { id: "EM-2891", type: "Flood Evacuation", user: "Sarah Johnson", location: "Sector 14", priority: "high", time: "2 min ago", people: 4 },
   { id: "EM-2893", type: "Medical Emergency", user: "Vikram Patel", location: "Rohini Block B", priority: "critical", time: "5 min ago", people: 2 },
   { id: "EM-2894", type: "Food & Shelter", user: "Meera Sharma", location: "Dwarka Sec 6", priority: "medium", time: "12 min ago", people: 6 },
@@ -44,6 +46,19 @@ interface Props {
 }
 
 export default function CampDashboard({ onNavigate }: Props) {
+  const { data: dbEmergencies = [] } = useRealtimeEmergencies();
+
+  const formattedDbPending = dbEmergencies.map((em) => ({
+    id: em.id.slice(0, 8),
+    type: em.disaster_type.toUpperCase(),
+    user: "Requester",
+    location: em.address || `${em.district}, ${em.province}`,
+    priority: em.urgency.toLowerCase(),
+    time: "Just now",
+    people: em.people_count,
+  }));
+
+  const pendingRequests = formattedDbPending.length > 0 ? formattedDbPending : mockPendingRequests;
   return (
     <div className="p-5 md:p-6 space-y-6 max-w-7xl">
       {/* Header */}
@@ -235,3 +250,5 @@ export default function CampDashboard({ onNavigate }: Props) {
     </div>
   );
 }
+
+export const getServerSideProps = async () => ({ props: {} });
