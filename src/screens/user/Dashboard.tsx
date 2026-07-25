@@ -1,56 +1,18 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  AlertTriangle, MapPin, MessageSquare, Clock, CheckCircle, Activity,
-  TrendingUp, ArrowRight, Phone, ChevronRight, Zap, Shield, Users
+  AlertTriangle, MapPin, MessageSquare, CheckCircle, Activity,
+  ArrowRight, Phone, ChevronRight, Shield
 } from "lucide-react";
 import { Card, StatCard, Badge, StatusChip, Button, Alert } from "../../components/ui";
-import { MapView } from "../../components/MapView";
+import { MapView, type MapCamp } from "../../components/MapView";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-
-const activityData = [
-  { day: "Mon", emergencies: 2, resolved: 2 },
-  { day: "Tue", emergencies: 1, resolved: 1 },
-  { day: "Wed", emergencies: 3, resolved: 2 },
-  { day: "Thu", emergencies: 1, resolved: 1 },
-  { day: "Fri", emergencies: 2, resolved: 2 },
-  { day: "Sat", emergencies: 0, resolved: 0 },
-  { day: "Sun", emergencies: 1, resolved: 0 },
-];
-
-const recentEmergencies = [
-  {
-    id: "EM-2891",
-    type: "Flood Evacuation",
-    status: "en_route" as const,
-    camp: "Camp Alpha",
-    time: "Today, 09:14 AM",
-    priority: "high",
-  },
-  {
-    id: "EM-2845",
-    type: "Medical Assistance",
-    status: "resolved" as const,
-    camp: "Camp Beta",
-    time: "Yesterday, 3:22 PM",
-    priority: "critical",
-  },
-  {
-    id: "EM-2812",
-    type: "Food & Shelter",
-    status: "resolved" as const,
-    camp: "Camp Delta",
-    time: "Jul 18, 11:05 AM",
-    priority: "medium",
-  },
-];
-
-const nearbyCamps = [
-  { name: "Camp Alpha", distance: "1.2 km", capacity: 500, occupied: 380, status: "active" as const },
-  { name: "Camp Beta", distance: "2.8 km", capacity: 300, occupied: 290, status: "active" as const },
-  { name: "Camp Delta", distance: "3.5 km", capacity: 200, occupied: 65, status: "active" as const },
-];
+import { useAuth } from "@/providers/AuthProvider";
+import { useRealtimeEmergencies } from "@/hooks/useRealtimeEmergencies";
+import { useRealtimeCamps } from "@/hooks/useRealtimeCamps";
+import type { EmergencyRecord } from "@/lib/services/emergencies";
+import type { EmergencyStatus } from "@/types/domain";
 
 const quickActions = [
   { label: "Create Emergency", icon: <AlertTriangle size={16} />, page: "create_emergency", color: "bg-[#FEF2F2] text-[#DC2626] hover:bg-[#FECACA]" },
@@ -59,25 +21,121 @@ const quickActions = [
   { label: "Helplines", icon: <Phone size={16} />, page: "helplines", color: "bg-[#FFF7ED] text-[#EA580C] hover:bg-[#FED7AA]" },
 ];
 
+const ACTIVE_ALERT_STATUSES: EmergencyStatus[] = ["Assigned", "Accepted", "En Route", "Arrived"];
+
+function toStatusChipValue(status: EmergencyStatus) {
+  switch (status) {
+    case "Submitted": return "submitted" as const;
+    case "Assigned": return "assigned" as const;
+    case "Accepted": return "accepted" as const;
+    case "En Route": return "en_route" as const;
+    case "Arrived": return "arrived" as const;
+    case "Resolved": return "resolved" as const;
+    case "Cancelled": return "cancelled" as const;
+    default: return "submitted" as const;
+  }
+}
+
+function priorityFromUrgency(urgency: string): "low" | "medium" | "high" | "critical" {
+  const lower = urgency.toLowerCase();
+  if (lower === "critical" || lower === "high" || lower === "low") return lower;
+  return "medium";
+}
+
+function formatTime(iso: string) {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const timeStr = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  if (date.toDateString() === today.toDateString()) return `Today, ${timeStr}`;
+  if (date.toDateString() === yesterday.toDateString()) return `Yesterday, ${timeStr}`;
+  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${timeStr}`;
+}
+
+function buildActivityData(emergencies: EmergencyRecord[]) {
+  const days: { day: string; date: string; emergencies: number; resolved: number }[] = [];
+  const today = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push({
+      day: d.toLocaleDateString("en-US", { weekday: "short" }),
+      date: d.toISOString().slice(0, 10),
+      emergencies: 0,
+      resolved: 0,
+    });
+  }
+  emergencies.forEach((em) => {
+    const created = em.created_at?.slice(0, 10);
+    const bucket = days.find((d) => d.date === created);
+    if (!bucket) return;
+    bucket.emergencies += 1;
+    if (em.status === "Resolved") bucket.resolved += 1;
+  });
+  return days;
+}
+
 interface Props {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, id?: string) => void;
 }
 
 export default function UserDashboard({ onNavigate }: Props) {
   const [showAlert, setShowAlert] = useState(true);
+  const { user, profile } = useAuth();
+
+  const { data: emergencies = [] } = useRealtimeEmergencies({
+    requesterId: user?.id,
+    enabled: !!user?.id,
+  });
+  const { data: camps = [] } = useRealtimeCamps({ status: "approved", acceptingOnly: true });
+
+  const displayName = profile?.full_name || profile?.email?.split("@")[0] || "there";
+  const locationLabel =
+    [profile?.city, profile?.district].filter(Boolean).join(", ") || profile?.province || "Your area";
+
+  const totalRequests = emergencies.length;
+  const resolvedCount = emergencies.filter((em) => em.status === "Resolved").length;
+  const activeCount = emergencies.filter((em) => em.status !== "Resolved" && em.status !== "Cancelled").length;
+  const resolveRate = totalRequests > 0 ? Math.round((resolvedCount / totalRequests) * 100) : 0;
+  const thisMonthCount = emergencies.filter((em) => {
+    const d = new Date(em.created_at);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+
+  const activeAlertEmergency = emergencies.find((em) => ACTIVE_ALERT_STATUSES.includes(em.status));
+  const recentEmergencies = emergencies.slice(0, 5);
+  const nearbyCamps = camps.slice(0, 3);
+  const activityData = useMemo(() => buildActivityData(emergencies), [emergencies]);
+
+  const mapCamps: MapCamp[] = nearbyCamps.map((camp) => ({
+    id: camp.id,
+    name: camp.name,
+    latitude: camp.latitude,
+    longitude: camp.longitude,
+    capacity: camp.capacity_total,
+    occupied: Math.max(0, camp.capacity_total - camp.capacity_available),
+    status: camp.capacity_available === 0 ? "full" : "active",
+    address: camp.address,
+    type: "primary",
+  }));
 
   return (
     <div className="p-5 md:p-6 space-y-6 max-w-7xl">
       {/* Active emergency alert */}
-      {showAlert && (
+      {showAlert && activeAlertEmergency && (
         <Alert
           type="warning"
-          title="Active Emergency En Route"
+          title="Active Emergency Update"
           onClose={() => setShowAlert(false)}
         >
-          Emergency #EM-2891 — Camp Alpha team is on their way. ETA: <strong>8 minutes</strong>.{" "}
+          Emergency #{activeAlertEmergency.id.slice(0, 8).toUpperCase()}
+          {activeAlertEmergency.relief_camps?.name
+            ? ` — ${activeAlertEmergency.relief_camps.name} is responding.`
+            : " is being processed."}{" "}
           <button
-            onClick={() => onNavigate("emergency_details")}
+            onClick={() => onNavigate("emergency_details", activeAlertEmergency.id)}
             className="text-[#92400E] underline font-semibold"
           >
             Track now
@@ -89,10 +147,10 @@ export default function UserDashboard({ onNavigate }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold text-[#0F172A] font-[family-name:var(--font-display)]">
-            Good morning, Sarah 👋
+            Good morning, {displayName} 👋
           </h1>
           <p className="text-sm text-[#64748B] mt-0.5">
-            New Delhi area · <span className="text-[#059669] font-medium">3 camps nearby</span>
+            {locationLabel} · <span className="text-[#059669] font-medium">{camps.length} camps nearby</span>
           </p>
         </div>
         <Button size="sm" onClick={() => onNavigate("create_emergency")} icon={<AlertTriangle size={14} />}>
@@ -120,34 +178,34 @@ export default function UserDashboard({ onNavigate }: Props) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Requests"
-          value="12"
-          change="3 this month"
+          value={totalRequests}
+          change={`${thisMonthCount} this month`}
           changeType="neutral"
           icon={<AlertTriangle size={16} />}
           color="blue"
         />
         <StatCard
           label="Resolved"
-          value="10"
-          change="↑ 83% resolve rate"
+          value={resolvedCount}
+          change={totalRequests > 0 ? `${resolveRate}% resolve rate` : "No requests yet"}
           changeType="up"
           icon={<CheckCircle size={16} />}
           color="green"
         />
         <StatCard
           label="Active"
-          value="1"
-          change="En route"
+          value={activeCount}
+          change={activeCount > 0 ? "In progress" : "None active"}
           changeType="neutral"
           icon={<Activity size={16} />}
           color="orange"
         />
         <StatCard
-          label="Avg Response"
-          value="7.4m"
-          change="↑ Faster than avg"
-          changeType="up"
-          icon={<Clock size={16} />}
+          label="Nearby Camps"
+          value={camps.length}
+          change="Accepting requests"
+          changeType="neutral"
+          icon={<Shield size={16} />}
           color="purple"
         />
       </div>
@@ -165,48 +223,57 @@ export default function UserDashboard({ onNavigate }: Props) {
               View all <ChevronRight size={12} />
             </button>
           </div>
-          <MapView height="280px" />
+          <MapView height="280px" camps={mapCamps} />
         </div>
 
         {/* Nearby camps list */}
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-[#0F172A]">Camp Status</h2>
-          <div className="space-y-2.5">
-            {nearbyCamps.map((camp, i) => {
-              const pct = Math.round((camp.occupied / camp.capacity) * 100);
-              return (
-                <Card
-                  key={i}
-                  padding="sm"
-                  hover
-                  onClick={() => onNavigate("camp_details")}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="text-sm font-semibold text-[#0F172A]">{camp.name}</p>
-                      <p className="text-xs text-[#64748B] flex items-center gap-1 mt-0.5">
-                        <MapPin size={10} /> {camp.distance}
-                      </p>
+          {nearbyCamps.length === 0 ? (
+            <Card padding="sm">
+              <p className="text-xs text-[#94A3B8] text-center py-4">No approved camps nearby yet.</p>
+            </Card>
+          ) : (
+            <div className="space-y-2.5">
+              {nearbyCamps.map((camp) => {
+                const occupied = Math.max(0, camp.capacity_total - camp.capacity_available);
+                const pct = camp.capacity_total > 0 ? Math.round((occupied / camp.capacity_total) * 100) : 0;
+                return (
+                  <Card
+                    key={camp.id}
+                    padding="sm"
+                    hover
+                    onClick={() => onNavigate("camp_details", camp.id)}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="text-sm font-semibold text-[#0F172A]">{camp.name}</p>
+                        <p className="text-xs text-[#64748B] flex items-center gap-1 mt-0.5">
+                          <MapPin size={10} /> {camp.district}, {camp.province}
+                        </p>
+                      </div>
+                      <Badge variant={camp.capacity_available === 0 ? "red" : "green"} dot>
+                        {camp.capacity_available === 0 ? "Full" : "Active"}
+                      </Badge>
                     </div>
-                    <Badge variant="green" dot>Active</Badge>
-                  </div>
-                  <div className="w-full bg-[#F1F5F9] rounded-full h-1.5 mb-1.5">
-                    <div
-                      className="h-1.5 rounded-full transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        background: pct > 90 ? "#DC2626" : pct > 70 ? "#EA580C" : "#059669",
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-[#94A3B8]">
-                    <span>{camp.occupied}/{camp.capacity} occupied</span>
-                    <span className={pct > 90 ? "text-[#DC2626]" : pct > 70 ? "text-[#EA580C]" : "text-[#059669]"}>{pct}%</span>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+                    <div className="w-full bg-[#F1F5F9] rounded-full h-1.5 mb-1.5">
+                      <div
+                        className="h-1.5 rounded-full transition-all"
+                        style={{
+                          width: `${pct}%`,
+                          background: pct > 90 ? "#DC2626" : pct > 70 ? "#EA580C" : "#059669",
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-[#94A3B8]">
+                      <span>{occupied}/{camp.capacity_total} occupied</span>
+                      <span className={pct > 90 ? "text-[#DC2626]" : pct > 70 ? "text-[#EA580C]" : "text-[#059669]"}>{pct}%</span>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
           <Button variant="outline" size="sm" fullWidth onClick={() => onNavigate("nearby_camps")} iconRight={<ArrowRight size={12} />}>
             Show All Camps
           </Button>
@@ -227,35 +294,44 @@ export default function UserDashboard({ onNavigate }: Props) {
                 View all <ChevronRight size={12} />
               </button>
             </div>
-            <div className="divide-y divide-[#F8FAFC]">
-              {recentEmergencies.map((em) => (
-                <div
-                  key={em.id}
-                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#F8FAFC] cursor-pointer transition-colors group"
-                  onClick={() => onNavigate("emergency_details")}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
-                    ${em.priority === "critical" ? "bg-[#FEF2F2] text-[#DC2626]" :
-                      em.priority === "high" ? "bg-[#FFF7ED] text-[#EA580C]" :
-                      "bg-[#FFFBEB] text-[#D97706]"}`}>
-                    <AlertTriangle size={14} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#94A3B8] font-[family-name:var(--font-mono)]">
-                        #{em.id}
-                      </span>
-                      <span className="text-sm font-medium text-[#0F172A] truncate">{em.type}</span>
+            {recentEmergencies.length === 0 ? (
+              <p className="text-xs text-[#94A3B8] text-center py-10">No emergency requests yet.</p>
+            ) : (
+              <div className="divide-y divide-[#F8FAFC]">
+                {recentEmergencies.map((em) => {
+                  const priority = priorityFromUrgency(em.urgency);
+                  return (
+                    <div
+                      key={em.id}
+                      className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#F8FAFC] cursor-pointer transition-colors group"
+                      onClick={() => onNavigate("emergency_details", em.id)}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
+                        ${priority === "critical" ? "bg-[#FEF2F2] text-[#DC2626]" :
+                          priority === "high" ? "bg-[#FFF7ED] text-[#EA580C]" :
+                          "bg-[#FFFBEB] text-[#D97706]"}`}>
+                        <AlertTriangle size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-[#94A3B8] font-[family-name:var(--font-mono)]">
+                            #{em.id.slice(0, 8).toUpperCase()}
+                          </span>
+                          <span className="text-sm font-medium text-[#0F172A] truncate">{em.title}</span>
+                        </div>
+                        <p className="text-xs text-[#94A3B8] mt-0.5">
+                          {em.relief_camps?.name || "Unassigned"} · {formatTime(em.created_at)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusChip status={toStatusChipValue(em.status)} />
+                        <ChevronRight size={12} className="text-[#CBD5E1] group-hover:text-[#94A3B8] transition-colors" />
+                      </div>
                     </div>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">{em.camp} · {em.time}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <StatusChip status={em.status} />
-                    <ChevronRight size={12} className="text-[#CBD5E1] group-hover:text-[#94A3B8] transition-colors" />
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         </div>
 
@@ -273,22 +349,11 @@ export default function UserDashboard({ onNavigate }: Props) {
               <div className="ml-auto w-2 h-2 rounded-full bg-[#059669] blink" />
             </div>
 
-            <div className="flex-1 space-y-2.5 mb-4">
-              <div className="p-3 bg-[#F8FAFC] rounded-xl rounded-tl-sm border border-[#F1F5F9]">
-                <p className="text-xs text-[#334155] leading-relaxed">
-                  Hello Sarah! I can help you find camps, assess risk levels, and guide you through emergencies. How can I help?
-                </p>
-              </div>
-              <div className="p-3 bg-[#EFF6FF] rounded-xl rounded-tr-sm border border-[#DBEAFE] ml-4">
-                <p className="text-xs text-[#1D4ED8] leading-relaxed">
-                  What should I do in a flood?
-                </p>
-              </div>
-              <div className="p-3 bg-[#F8FAFC] rounded-xl rounded-tl-sm border border-[#F1F5F9]">
-                <p className="text-xs text-[#334155] leading-relaxed">
-                  Move to higher ground immediately. I've detected <strong>Camp Alpha</strong> at 1.2km with 120 available spots. Shall I send a request?
-                </p>
-              </div>
+            <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 py-4">
+              <MessageSquare size={22} className="text-[#CBD5E1]" />
+              <p className="text-xs text-[#64748B] leading-relaxed max-w-[200px]">
+                Ask ResQ AI for emergency guidance, camp recommendations, and risk assessments — anytime.
+              </p>
             </div>
 
             <Button fullWidth variant="secondary" size="sm" onClick={() => onNavigate("ai_chat")}>
@@ -318,7 +383,7 @@ export default function UserDashboard({ onNavigate }: Props) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
             <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip
               contentStyle={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12 }}
               labelStyle={{ fontWeight: 600, color: "#0F172A" }}

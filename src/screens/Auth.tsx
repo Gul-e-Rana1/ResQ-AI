@@ -224,7 +224,7 @@ function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
 
         <Input
           label="Full Name"
-          placeholder="Sarah Johnson"
+          placeholder="Ahmed Khan"
           value={form.name}
           onChange={(e) => update("name", e.target.value)}
           prefixIcon={<User size={14} />}
@@ -242,7 +242,7 @@ function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
         <Input
           label="Phone Number"
           type="tel"
-          placeholder="+1 (555) 000-0000"
+          placeholder="+92 300 1234567"
           value={form.phone}
           onChange={(e) => update("phone", e.target.value)}
           prefixIcon={<Phone size={14} />}
@@ -250,7 +250,7 @@ function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
         />
         <Input
           label="Location / City"
-          placeholder="New Delhi, India"
+          placeholder="Lahore, Punjab"
           value={form.location}
           onChange={(e) => update("location", e.target.value)}
           prefixIcon={<MapPin size={14} />}

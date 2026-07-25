@@ -1,31 +1,39 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  ArrowLeft, MapPin, AlertTriangle, Users, FileText, CheckCircle,
+  ArrowLeft, MapPin, AlertTriangle, Users, CheckCircle,
   ChevronRight, Zap, Locate
 } from "lucide-react";
+import { z } from "zod";
 import { Button, Input, Textarea, Select, Card, Alert, RiskLevel } from "../../components/ui";
 import { useAuth } from "../../providers/AuthProvider";
+import { useGeolocation } from "@/hooks/useGeolocation";
 import { createEmergencyRequest } from "@/lib/services/emergencies";
+import { recommendCamps } from "@/lib/services/camps";
+import { assessEmergency } from "@/lib/services/ai";
+import { PAKISTAN_PROVINCES } from "@/lib/constants/pakistan";
 import type { DisasterType, EmergencyUrgency } from "@/types/domain";
 
 interface Props {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, id?: string) => void;
 }
 
 const steps = ["Type & Priority", "Location & People", "Description", "Review"];
 
-const emergencyTypes = [
-  { value: "", label: "Select emergency type..." },
-  { value: "flood", label: "🌊 Flood / Flash Flood" },
-  { value: "earthquake", label: "🏚️ Earthquake Damage" },
-  { value: "fire", label: "🔥 Fire / Wildfire" },
-  { value: "medical", label: "🏥 Medical Emergency" },
-  { value: "cyclone", label: "🌀 Cyclone / Storm" },
-  { value: "landslide", label: "⛰️ Landslide" },
-  { value: "shelter", label: "🏕️ Food & Shelter" },
-  { value: "missing", label: "🔍 Missing Person" },
-  { value: "other", label: "🆘 Other Emergency" },
+// The select's `value` must stay unique per option (the shared Select component keys
+// options by value), so UI-level ids are kept distinct here and mapped to the
+// canonical DB `disasterType` separately — several options legitimately collapse to "other".
+const emergencyTypes: { value: string; label: string; disasterType: DisasterType | "" }[] = [
+  { value: "", label: "Select emergency type...", disasterType: "" },
+  { value: "flood", label: "🌊 Flood / Flash Flood", disasterType: "flood" },
+  { value: "earthquake", label: "🏚️ Earthquake Damage", disasterType: "earthquake" },
+  { value: "fire", label: "🔥 Fire / Wildfire", disasterType: "wildfire" },
+  { value: "medical", label: "🏥 Medical Emergency", disasterType: "medical" },
+  { value: "cyclone", label: "🌀 Cyclone / Storm", disasterType: "storm" },
+  { value: "landslide", label: "⛰️ Landslide", disasterType: "landslide" },
+  { value: "shelter", label: "🏕️ Food & Shelter", disasterType: "other" },
+  { value: "missing", label: "🔍 Missing Person", disasterType: "other" },
+  { value: "other", label: "🆘 Other Emergency", disasterType: "other" },
 ];
 
 const priorities = [
@@ -36,17 +44,47 @@ const priorities = [
   { value: "critical", label: "Critical — Life-threatening" },
 ];
 
+const emergencySchema = z.object({
+  type: z.string().min(1, "Please select an emergency type"),
+  priority: z.string().min(1, "Please select a priority level"),
+  address: z.string().trim().min(1, "Address is required"),
+  province: z.string().min(1, "Province is required"),
+  district: z.string().trim().min(1, "District is required"),
+  people: z.coerce
+    .number({ message: "Enter a valid number" })
+    .int("Enter a whole number")
+    .min(1, "At least 1 person must be affected"),
+  description: z.string().trim().min(20, "Please describe the situation in at least 20 characters"),
+});
+
+type EmergencyFormValues = z.infer<typeof emergencySchema>;
+type FormErrors = Partial<Record<keyof EmergencyFormValues, string>>;
+
+const stepFieldMap: Record<number, (keyof EmergencyFormValues)[]> = {
+  0: ["type", "priority"],
+  1: ["address", "province", "district", "people"],
+  2: ["description"],
+  3: [],
+};
+
 export default function CreateEmergency({ onNavigate }: Props) {
   const { user } = useAuth();
+  const { coords, loading: geoLoading, error: geoError, locate } = useGeolocation();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
   const [createdEmergencyId, setCreatedEmergencyId] = useState("");
+  const [nearestCamp, setNearestCamp] = useState<string | null>(null);
+  const [campLookupDone, setCampLookupDone] = useState(false);
   const [form, setForm] = useState({
     type: "",
+    typeLabel: "",
     priority: "",
     address: "",
+    province: "",
+    district: "",
     landmark: "",
     people: "",
     elderly: false,
@@ -59,41 +97,114 @@ export default function CreateEmergency({ onNavigate }: Props) {
   const update = (key: string, value: string | boolean) =>
     setForm((p) => ({ ...p, [key]: value }));
 
+  const validate = (): FormErrors => {
+    const result = emergencySchema.safeParse(form);
+    if (result.success) return {};
+    const errs: FormErrors = {};
+    for (const issue of result.error.issues) {
+      const key = issue.path[0] as keyof EmergencyFormValues;
+      if (!errs[key]) errs[key] = issue.message;
+    }
+    return errs;
+  };
+
+  const handleContinue = () => {
+    const errs = validate();
+    setErrors(errs);
+    const stepHasError = stepFieldMap[step].some((f) => errs[f]);
+    if (!stepHasError) setStep((s) => s + 1);
+  };
+
+  const handleAutoDetect = async () => {
+    await locate();
+  };
+
   const handleSubmit = async () => {
+    const errs = validate();
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      const firstErrorStep = [0, 1, 2].find((s) => stepFieldMap[s].some((f) => errs[f]));
+      if (firstErrorStep !== undefined) setStep(firstErrorStep);
+      return;
+    }
+
     setLoading(true);
     setErrorMessage("");
     try {
-      if (user?.id) {
-        const result = await createEmergencyRequest({
-          requesterId: user.id,
-          disasterType: (form.type || "other") as DisasterType,
-          urgency: (form.priority.toUpperCase() || "MEDIUM") as EmergencyUrgency,
-          title: `${form.type || "Emergency"} Request - ${form.address || "Location"}`,
-          description: form.description || form.additionalInfo || "Emergency assistance requested.",
-          province: "Punjab",
-          district: "Lahore",
-          address: form.address,
-          peopleCount: parseInt(form.people, 10) || 1,
-          requiredSupplies: [
-            ...(form.elderly ? ["Elderly Care"] : []),
-            ...(form.children ? ["Child Food / Supplies"] : []),
-            ...(form.injured ? ["First Aid / Medical Kit"] : []),
-          ],
-        });
-        if (result) {
-          setCreatedEmergencyId(result.id);
-        }
+      if (!user?.id) {
+        setErrorMessage("You must be signed in to submit an emergency request.");
+        return;
+      }
+
+      const title = `${form.typeLabel || form.type || "Emergency"} Request - ${form.address || "Location"}`;
+      const description = form.description || form.additionalInfo || "Emergency assistance requested.";
+      const peopleCount = parseInt(form.people, 10) || 1;
+      const disasterType = (emergencyTypes.find((t) => t.value === form.type)?.disasterType || "other") as DisasterType;
+
+      const assessment = await assessEmergency({
+        title,
+        description,
+        peopleCount,
+      });
+
+      const result = await createEmergencyRequest({
+        requesterId: user.id,
+        disasterType,
+        urgency: (form.priority ? form.priority.toUpperCase() : "MEDIUM") as EmergencyUrgency,
+        title,
+        description,
+        province: form.province,
+        district: form.district,
+        address: form.address,
+        latitude: coords?.latitude,
+        longitude: coords?.longitude,
+        peopleCount,
+        requiredSupplies: [
+          ...(form.elderly ? ["Elderly Care"] : []),
+          ...(form.children ? ["Child Food / Supplies"] : []),
+          ...(form.injured ? ["First Aid / Medical Kit"] : []),
+        ],
+        ...(assessment ? { aiSummary: assessment as unknown as Record<string, unknown> } : {}),
+      });
+
+      if (result) {
+        setCreatedEmergencyId(result.id);
       }
       setSubmitted(true);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      console.warn("Error submitting emergency request to DB:", message);
-      // Fallback to local submission UI state
-      setSubmitted(true);
+      console.error("Error submitting emergency request:", message);
+      setErrorMessage("Failed to submit your emergency request. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!submitted) return;
+    let cancelled = false;
+    setCampLookupDone(false);
+    const disasterType = (emergencyTypes.find((t) => t.value === form.type)?.disasterType || "other") as DisasterType;
+    recommendCamps({
+      disasterType,
+      userLocation: coords ? { latitude: coords.latitude, longitude: coords.longitude } : undefined,
+      limit: 1,
+    })
+      .then((results) => {
+        if (cancelled) return;
+        setNearestCamp(results[0]?.camp.name ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setNearestCamp(null);
+      })
+      .finally(() => {
+        if (!cancelled) setCampLookupDone(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitted]);
 
   if (submitted) {
     return (
@@ -110,7 +221,7 @@ export default function CreateEmergency({ onNavigate }: Props) {
           </p>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#EFF6FF] border border-[#DBEAFE] rounded-full mb-6">
             <span className="text-xs font-bold text-[#2563EB] font-[family-name:var(--font-mono)]">
-              #{createdEmergencyId ? createdEmergencyId.slice(0, 8) : "EM-2892"}
+              #{createdEmergencyId ? createdEmergencyId.slice(0, 8) : "Pending"}
             </span>
           </div>
 
@@ -125,7 +236,9 @@ export default function CreateEmergency({ onNavigate }: Props) {
             </div>
             <div className="p-3 bg-[#F8FAFC] rounded-xl border border-[#F1F5F9]">
               <p className="text-[10px] text-[#94A3B8] uppercase font-semibold">Nearest Camp</p>
-              <p className="text-xs font-semibold text-[#0F172A] mt-1">Camp Alpha</p>
+              <p className="text-xs font-semibold text-[#0F172A] mt-1">
+                {campLookupDone ? nearestCamp || "Matching in progress..." : "Matching in progress..."}
+              </p>
             </div>
           </div>
 
@@ -133,7 +246,7 @@ export default function CreateEmergency({ onNavigate }: Props) {
             <Button fullWidth variant="outline" onClick={() => onNavigate("my_emergencies")}>
               View My Requests
             </Button>
-            <Button fullWidth onClick={() => onNavigate("emergency_details")}>
+            <Button fullWidth onClick={() => onNavigate("emergency_details", createdEmergencyId || undefined)}>
               Track Emergency
             </Button>
           </div>
@@ -178,6 +291,8 @@ export default function CreateEmergency({ onNavigate }: Props) {
         </p>
       </div>
 
+      {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+
       {/* Step content */}
       <Card>
         {step === 0 && (
@@ -187,7 +302,12 @@ export default function CreateEmergency({ onNavigate }: Props) {
               label="Emergency Type"
               options={emergencyTypes}
               value={form.type}
-              onChange={(e) => update("type", e.target.value)}
+              onChange={(e) => {
+                const opt = emergencyTypes.find((t) => t.value === e.target.value);
+                update("type", e.target.value);
+                update("typeLabel", opt?.label || "");
+              }}
+              error={errors.type}
               fullWidth
             />
             <Select
@@ -195,6 +315,7 @@ export default function CreateEmergency({ onNavigate }: Props) {
               options={priorities}
               value={form.priority}
               onChange={(e) => update("priority", e.target.value)}
+              error={errors.priority}
               fullWidth
             />
             {form.priority && form.priority !== "" && (
@@ -216,12 +337,42 @@ export default function CreateEmergency({ onNavigate }: Props) {
                 value={form.address}
                 onChange={(e) => update("address", e.target.value)}
                 prefixIcon={<MapPin size={14} />}
+                error={errors.address}
                 fullWidth
               />
-              <button className="absolute right-2.5 bottom-1.5 flex items-center gap-1 text-[11px] text-[#2563EB] font-medium hover:underline px-2 py-1 bg-[#EFF6FF] rounded-md">
-                <Locate size={10} /> Auto-detect
+              <button
+                type="button"
+                onClick={handleAutoDetect}
+                disabled={geoLoading}
+                className="absolute right-2.5 bottom-1.5 flex items-center gap-1 text-[11px] text-[#2563EB] font-medium hover:underline px-2 py-1 bg-[#EFF6FF] rounded-md disabled:opacity-60"
+              >
+                <Locate size={10} /> {geoLoading ? "Detecting..." : coords ? "Location captured" : "Auto-detect"}
               </button>
             </div>
+            {geoError && <p className="text-xs text-[#DC2626]">{geoError}</p>}
+
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                label="Province"
+                options={[
+                  { value: "", label: "Select province..." },
+                  ...PAKISTAN_PROVINCES.map((p) => ({ value: p, label: p })),
+                ]}
+                value={form.province}
+                onChange={(e) => update("province", e.target.value)}
+                error={errors.province}
+                fullWidth
+              />
+              <Input
+                label="District"
+                placeholder="e.g., Lahore"
+                value={form.district}
+                onChange={(e) => update("district", e.target.value)}
+                error={errors.district}
+                fullWidth
+              />
+            </div>
+
             <Input
               label="Nearby Landmark"
               placeholder="e.g., Near State Bank, Opposite school..."
@@ -237,6 +388,7 @@ export default function CreateEmergency({ onNavigate }: Props) {
               value={form.people}
               onChange={(e) => update("people", e.target.value)}
               prefixIcon={<Users size={14} />}
+              error={errors.people}
               fullWidth
             />
 
@@ -275,7 +427,8 @@ export default function CreateEmergency({ onNavigate }: Props) {
               onChange={(e) => update("description", e.target.value)}
               fullWidth
               rows={5}
-              hint="Be as detailed as possible — this helps AI assess your risk level accurately."
+              error={errors.description}
+              hint={errors.description ? undefined : "Be as detailed as possible — this helps AI assess your risk level accurately."}
             />
             <Textarea
               label="Additional Information (optional)"
@@ -293,9 +446,10 @@ export default function CreateEmergency({ onNavigate }: Props) {
             <h2 className="text-sm font-semibold text-[#0F172A] mb-4">Review your request</h2>
             <div className="space-y-3">
               {[
-                { label: "Emergency Type", value: emergencyTypes.find(t => t.value === form.type)?.label || "—" },
+                { label: "Emergency Type", value: form.typeLabel || "—" },
                 { label: "Priority", value: priorities.find(p => p.value === form.priority)?.label || "—" },
                 { label: "Location", value: form.address || "—" },
+                { label: "Province / District", value: [form.province, form.district].filter(Boolean).join(" / ") || "—" },
                 { label: "Landmark", value: form.landmark || "—" },
                 { label: "People Affected", value: form.people ? `${form.people} person(s)` : "—" },
                 { label: "Vulnerable", value: [form.elderly && "Elderly", form.children && "Children", form.injured && "Injured"].filter(Boolean).join(", ") || "None" },
@@ -329,11 +483,11 @@ export default function CreateEmergency({ onNavigate }: Props) {
           </Button>
         )}
         {step < steps.length - 1 ? (
-          <Button className="ml-auto" onClick={() => setStep(s => s + 1)} iconRight={<ChevronRight size={14} />}>
+          <Button className="ml-auto" onClick={handleContinue} iconRight={<ChevronRight size={14} />}>
             Continue
           </Button>
         ) : (
-          <Button className="ml-auto" loading={loading} onClick={handleSubmit} icon={<AlertTriangle size={14} />}>
+          <Button className="ml-auto" loading={loading} disabled={loading} onClick={handleSubmit} icon={<AlertTriangle size={14} />}>
             Submit Emergency
           </Button>
         )}

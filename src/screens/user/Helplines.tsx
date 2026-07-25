@@ -1,58 +1,35 @@
 import React, { useState } from "react";
-import { Phone, Search, ExternalLink, Shield, AlertTriangle, Heart, Flame, BadgeAlert, Globe } from "lucide-react";
-import { Card, Badge, SearchInput } from "../../components/ui";
+import { Phone, Shield, AlertTriangle, Heart, MapPin } from "lucide-react";
+import { Card, SearchInput } from "../../components/ui";
+import { PAKISTAN_EMERGENCY_HELPLINES } from "@/lib/constants/pakistan";
 
-const helplines = [
+const CATEGORY_RULES: { category: string; icon: React.ReactNode; color: string; match: (name: string) => boolean }[] = [
   {
-    category: "National Disaster",
+    category: "Rescue & Disaster Response",
     icon: <AlertTriangle size={16} />,
     color: "bg-[#FEF2F2] text-[#DC2626]",
-    numbers: [
-      { name: "National Disaster Response Force (NDRF)", number: "011-24363260", country: "India", available: "24/7" },
-      { name: "State Disaster Management", number: "1070", country: "India", available: "24/7" },
-      { name: "National Emergency Response", number: "112", country: "India", available: "24/7" },
-    ],
+    match: (name) => name.includes("Rescue") || name.includes("NDMA"),
   },
   {
     category: "Medical Emergency",
     icon: <Heart size={16} />,
-    color: "bg-[#FEF2F2] text-[#DC2626]",
-    numbers: [
-      { name: "Ambulance Service", number: "108", country: "India", available: "24/7" },
-      { name: "National Health Helpline", number: "104", country: "India", available: "24/7" },
-      { name: "Mental Health Crisis Line", number: "iCall: 9152987821", country: "India", available: "Mon–Sat" },
-    ],
+    color: "bg-[#FFF7ED] text-[#EA580C]",
+    match: (name) => name.includes("Ambulance"),
   },
   {
     category: "Police & Safety",
     icon: <Shield size={16} />,
     color: "bg-[#EFF6FF] text-[#2563EB]",
-    numbers: [
-      { name: "Police Emergency", number: "100", country: "India", available: "24/7" },
-      { name: "Women Safety Helpline", number: "1091", country: "India", available: "24/7" },
-      { name: "Child Helpline", number: "1098", country: "India", available: "24/7" },
-    ],
-  },
-  {
-    category: "Fire & Rescue",
-    icon: <Flame size={16} />,
-    color: "bg-[#FFF7ED] text-[#EA580C]",
-    numbers: [
-      { name: "Fire Brigade", number: "101", country: "India", available: "24/7" },
-      { name: "Rescue Operations", number: "1079", country: "India", available: "24/7" },
-    ],
-  },
-  {
-    category: "Relief Coordination",
-    icon: <BadgeAlert size={16} />,
-    color: "bg-[#ECFDF5] text-[#059669]",
-    numbers: [
-      { name: "PM Relief Fund Helpline", number: "1800-180-1253", country: "India", available: "24/7" },
-      { name: "Red Cross India", number: "011-23716441", country: "India", available: "Business hours" },
-      { name: "UN Emergency Coordination", number: "+41 22 917 1234", country: "Global", available: "24/7" },
-    ],
+    match: (name) => name.includes("Police"),
   },
 ];
+
+const helplines = CATEGORY_RULES.map((rule) => ({
+  category: rule.category,
+  icon: rule.icon,
+  color: rule.color,
+  numbers: PAKISTAN_EMERGENCY_HELPLINES.filter((h) => rule.match(h.name)),
+})).filter((cat) => cat.numbers.length > 0);
 
 export default function Helplines() {
   const [search, setSearch] = useState("");
@@ -63,7 +40,7 @@ export default function Helplines() {
       (n) =>
         search === "" ||
         n.name.toLowerCase().includes(search.toLowerCase()) ||
-        n.number.includes(search)
+        n.phone.includes(search)
     ),
   })).filter((cat) => cat.numbers.length > 0);
 
@@ -77,7 +54,7 @@ export default function Helplines() {
       <div className="flex items-start gap-3 p-4 bg-[#FFF7ED] border border-[#FED7AA] rounded-xl">
         <AlertTriangle size={14} className="text-[#EA580C] flex-shrink-0 mt-0.5" />
         <p className="text-xs text-[#C2410C]">
-          <strong>In immediate danger?</strong> Call 112 (National Emergency) or 108 (Medical) immediately. These are toll-free numbers available 24/7.
+          <strong>In immediate danger?</strong> Call 1122 (Rescue) or 115 (Edhi Ambulance) immediately. These are toll-free numbers available 24/7.
         </p>
       </div>
 
@@ -106,19 +83,16 @@ export default function Helplines() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#0F172A]">{n.name}</p>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-sm font-semibold text-[#2563EB] font-[family-name:var(--font-mono)]">{n.number}</span>
+                      <span className="text-sm font-semibold text-[#2563EB] font-[family-name:var(--font-mono)]">{n.phone}</span>
                       <span className="text-[11px] text-[#94A3B8]">·</span>
                       <span className="text-[11px] text-[#94A3B8] flex items-center gap-1">
-                        <Globe size={9} /> {n.country}
+                        <MapPin size={9} /> {n.scope}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={n.available === "24/7" ? "green" : "gray"}>
-                      {n.available}
-                    </Badge>
                     <a
-                      href={`tel:${n.number.replace(/\s/g, "")}`}
+                      href={`tel:${n.phone.replace(/\s/g, "")}`}
                       className="w-8 h-8 rounded-lg bg-[#ECFDF5] text-[#059669] hover:bg-[#D1FAE5] flex items-center justify-center transition-colors"
                     >
                       <Phone size={13} />
