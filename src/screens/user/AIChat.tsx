@@ -10,6 +10,7 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { DISASTER_TYPES } from "@/lib/constants/pakistan";
 import { AI_CHAT_STORAGE_KEY } from "@/lib/constants/storage";
 
+
 interface Message {
   id: string;
   role: "user" | "assistant";
