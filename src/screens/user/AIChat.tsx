@@ -78,7 +78,7 @@ export default function AIChat({ onNavigate }: Props) {
       );
 
       let campRecs: CampRecommendation[] = [];
-      if (res.topicAllowed && res.disasterType && coords) {
+      if (res.topicAllowed && res.isEmergency && res.disasterType && coords) {
         const matchedDisasterType = DISASTER_TYPES.find((d) => d === res.disasterType);
         if (matchedDisasterType) {
           try {
