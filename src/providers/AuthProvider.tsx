@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signUp = useCallback(
-    async ({ fullName, email, phone, location, password }: SignUpInput) => {
+    async ({ fullName, email, phone, location, password, role }: SignUpInput) => {
       const parsedLocation = parseLocation(location);
       const { error } = await supabase.auth.signUp({
         email,
@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: fullName,
             phone,
-            role: "registered_user",
+            role: role || "registered_user",
             ...parsedLocation,
           },
         },
