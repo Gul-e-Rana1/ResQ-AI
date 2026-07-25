@@ -72,14 +72,7 @@ interface EmergencyTimelineProps {
   compact?: boolean;
 }
 
-const defaultEvents: TimelineEvent[] = [
-  { status: "submitted", timestamp: "Today, 09:14 AM", note: "Request submitted via mobile app", actor: "Sarah Johnson" },
-  { status: "assigned", timestamp: "Today, 09:17 AM", note: "Matched to Camp Alpha based on proximity and capacity", actor: "ResQ AI" },
-  { status: "accepted", timestamp: "Today, 09:22 AM", note: "Confirmed by Camp Alpha coordinator", actor: "Camp Alpha" },
-  { status: "en_route", timestamp: "Today, 09:28 AM", note: "Team of 4 dispatched. ETA: 12 minutes", actor: "Camp Alpha" },
-];
-
-export function EmergencyTimeline({ currentStatus, events = defaultEvents, compact = false }: EmergencyTimelineProps) {
+export function EmergencyTimeline({ currentStatus, events = [], compact = false }: EmergencyTimelineProps) {
   if (currentStatus === "cancelled") {
     return (
       <div className="flex items-center gap-3 p-4 bg-[#FEF2F2] border border-[#FECACA] rounded-xl">

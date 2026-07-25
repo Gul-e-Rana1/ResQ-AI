@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import {
   LayoutDashboard, AlertTriangle, MapPin, MessageSquare, Phone, User, Settings,
   ChevronRight, Bell, Search, Menu, X, LogOut, Shield, Users, BarChart3,
-  CheckSquare, Building2, HardHat, FileText, Home, ChevronDown, Zap,
-  Activity, HeartHandshake
+  CheckSquare, Building2, HardHat, FileText, ChevronDown, HeartHandshake
 } from "lucide-react";
 import { Avatar, Badge } from "./ui";
+import type { NotificationRecord } from "@/lib/services/notifications";
 
 export type UserRole = "user" | "camp_manager" | "camp_team_member" | "admin";
 export type PageId = string;
@@ -18,11 +18,11 @@ interface NavItem {
   section?: string;
 }
 
-function getUserNav(): NavItem[] {
+function getUserNav(badges: Record<string, number>): NavItem[] {
   return [
     { id: "user_dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} />, section: "Overview" },
     { id: "create_emergency", label: "Create Emergency", icon: <AlertTriangle size={16} />, section: "Emergency" },
-    { id: "my_emergencies", label: "My Emergencies", icon: <FileText size={16} />, badge: 2, section: "Emergency" },
+    { id: "my_emergencies", label: "My Emergencies", icon: <FileText size={16} />, badge: badges.my_emergencies, section: "Emergency" },
     { id: "ai_chat", label: "AI Assistant", icon: <MessageSquare size={16} />, section: "Tools" },
     { id: "nearby_camps", label: "Nearby Camps", icon: <MapPin size={16} />, section: "Tools" },
     { id: "helplines", label: "Emergency Helplines", icon: <Phone size={16} />, section: "Tools" },
@@ -31,10 +31,10 @@ function getUserNav(): NavItem[] {
   ];
 }
 
-function getCampNav(): NavItem[] {
+function getCampNav(badges: Record<string, number>): NavItem[] {
   return [
     { id: "camp_dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} />, section: "Overview" },
-    { id: "camp_emergency_requests", label: "Emergency Requests", icon: <AlertTriangle size={16} />, badge: 5, section: "Operations" },
+    { id: "camp_emergency_requests", label: "Emergency Requests", icon: <AlertTriangle size={16} />, badge: badges.camp_emergency_requests, section: "Operations" },
     { id: "camp_team", label: "Team Members", icon: <Users size={16} />, section: "Operations" },
     { id: "camp_details_mgmt", label: "Camp Details", icon: <Building2 size={16} />, section: "Management" },
     { id: "camp_departments", label: "Departments", icon: <HardHat size={16} />, section: "Management" },
@@ -43,10 +43,10 @@ function getCampNav(): NavItem[] {
   ];
 }
 
-function getAdminNav(): NavItem[] {
+function getAdminNav(badges: Record<string, number>): NavItem[] {
   return [
     { id: "admin_dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} />, section: "Overview" },
-    { id: "admin_approvals", label: "Camp Approvals", icon: <CheckSquare size={16} />, badge: 3, section: "Management" },
+    { id: "admin_approvals", label: "Camp Approvals", icon: <CheckSquare size={16} />, badge: badges.admin_approvals, section: "Management" },
     { id: "admin_users", label: "Users", icon: <Users size={16} />, section: "Management" },
     { id: "admin_camps", label: "Camp Managers", icon: <Building2 size={16} />, section: "Management" },
     { id: "admin_analytics", label: "Analytics", icon: <BarChart3 size={16} />, section: "Insights" },
@@ -81,6 +81,17 @@ const roleConfig = {
   },
 };
 
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 interface LayoutProps {
   role: UserRole;
   currentPage: PageId;
@@ -89,7 +100,9 @@ interface LayoutProps {
   userName?: string;
   userEmail?: string;
   children: React.ReactNode;
-  notifications?: number;
+  notifications?: NotificationRecord[];
+  onNotificationClick?: (notificationId: string, read: boolean) => void;
+  badges?: Record<string, number>;
   onRoleSwitch?: (role: UserRole) => void;
 }
 
@@ -98,10 +111,12 @@ export function Layout({
   currentPage,
   onNavigate,
   onLogout,
-  userName = "Sarah Johnson",
-  userEmail = "sarah@resqai.com",
+  userName = "ResQ AI User",
+  userEmail = "user@resqai.pk",
   children,
-  notifications = 3,
+  notifications = [],
+  onNotificationClick,
+  badges = {},
   onRoleSwitch,
 }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -109,7 +124,7 @@ export function Layout({
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
 
   const config = roleConfig[role];
-  const navItems = config.nav();
+  const navItems = config.nav(badges);
 
   const sectionGroups = navItems.reduce<Record<string, NavItem[]>>((acc, item) => {
     const section = item.section || "Other";
@@ -118,11 +133,8 @@ export function Layout({
     return acc;
   }, {});
 
-  const sampleNotifs = [
-    { id: 1, text: "Emergency #EM-2891 has been assigned to Camp Delta", time: "2 min ago", unread: true, type: "info" },
-    { id: 2, text: "Your rescue request is En Route — ETA 12 minutes", time: "15 min ago", unread: true, type: "success" },
-    { id: 3, text: "Camp Alpha has capacity for 40 more people", time: "1 hr ago", unread: true, type: "info" },
-  ];
+  const unreadCount = notifications.filter((n) => !n.read_at).length;
+  const visibleNotifications = notifications.slice(0, 6);
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
@@ -281,7 +293,7 @@ export function Layout({
               className="relative w-8 h-8 flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] rounded-lg transition-all"
             >
               <Bell size={16} />
-              {notifications > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-[#DC2626] rounded-full" />
               )}
             </button>
@@ -290,23 +302,31 @@ export function Layout({
               <div className="absolute right-0 top-10 w-80 bg-white border border-[#E2E8F0] rounded-xl shadow-xl z-50 slide-down overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[#F1F5F9]">
                   <span className="text-sm font-semibold text-[#0F172A]">Notifications</span>
-                  <Badge variant="blue">{notifications} new</Badge>
+                  {unreadCount > 0 && <Badge variant="blue">{unreadCount} new</Badge>}
                 </div>
-                <div className="divide-y divide-[#F1F5F9]">
-                  {sampleNotifs.map((n) => (
-                    <div key={n.id} className={`px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer transition-colors ${n.unread ? "bg-[#FAFBFF]" : ""}`}>
-                      <div className="flex items-start gap-2.5">
-                        {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] flex-shrink-0 mt-1.5" />}
-                        <div className={n.unread ? "" : "ml-4"}>
-                          <p className="text-xs text-[#334155] leading-snug">{n.text}</p>
-                          <p className="text-[11px] text-[#94A3B8] mt-1">{n.time}</p>
+                <div className="divide-y divide-[#F1F5F9] max-h-80 overflow-y-auto">
+                  {visibleNotifications.length === 0 && (
+                    <div className="px-4 py-6 text-center text-xs text-[#94A3B8]">No notifications yet</div>
+                  )}
+                  {visibleNotifications.map((n) => {
+                    const unread = !n.read_at;
+                    return (
+                      <div
+                        key={n.id}
+                        onClick={() => onNotificationClick?.(n.id, !unread)}
+                        className={`px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer transition-colors ${unread ? "bg-[#FAFBFF]" : ""}`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {unread && <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] flex-shrink-0 mt-1.5" />}
+                          <div className={unread ? "" : "ml-4"}>
+                            <p className="text-xs font-medium text-[#334155] leading-snug">{n.title}</p>
+                            <p className="text-xs text-[#64748B] leading-snug mt-0.5">{n.body}</p>
+                            <p className="text-[11px] text-[#94A3B8] mt-1">{formatRelativeTime(n.created_at)}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="px-4 py-3 border-t border-[#F1F5F9] text-center">
-                  <button className="text-xs text-[#2563EB] font-medium hover:underline">View all notifications</button>
+                    );
+                  })}
                 </div>
               </div>
             )}
