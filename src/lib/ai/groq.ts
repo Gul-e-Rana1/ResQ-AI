@@ -1,12 +1,14 @@
 import Groq from "groq-sdk";
-import { getServerEnv } from "@/lib/env";
 import { PAKISTAN_EMERGENCY_HELPLINES } from "@/lib/constants/pakistan";
 
 export const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 export function getGroqClient(): Groq {
-  const env = getServerEnv();
-  return new Groq({ apiKey: env.GROQ_API_KEY });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error("GROQ_API_KEY is not set");
+  }
+  return new Groq({ apiKey });
 }
 
 export function buildHelplinesText(): string {

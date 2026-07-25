@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uniqueChannelName } from "@/lib/supabase/channel";
 import type { DisasterType, EmergencyStatus, EmergencyUrgency } from "@/types/domain";
 
 export interface EmergencyRecord {
@@ -128,7 +129,7 @@ export async function createEmergencyRequest(
     requester_id: input.requesterId,
     disaster_type: input.disasterType,
     urgency: input.urgency,
-    status: "Submitted" as EmergencyStatus,
+    status: (input.assignedCampId ? "Assigned" : "Submitted") as EmergencyStatus,
     title: input.title,
     description: input.description,
     province: input.province,
@@ -153,15 +154,25 @@ export async function createEmergencyRequest(
     throw new Error(error.message);
   }
 
-  // Insert initial timeline entry
-  await supabase.from("emergency_timeline").insert([
+  const timelineEntries = [
     {
       emergency_id: data.id,
       performed_by: input.requesterId,
       status: "Submitted",
       note: "Emergency request created",
     },
-  ]);
+  ];
+
+  if (input.assignedCampId) {
+    timelineEntries.push({
+      emergency_id: data.id,
+      performed_by: input.requesterId,
+      status: "Assigned",
+      note: "Matched to nearest relief camp based on disaster type, capacity, and distance",
+    });
+  }
+
+  await supabase.from("emergency_timeline").insert(timelineEntries);
 
   return data as EmergencyRecord;
 }
@@ -212,7 +223,7 @@ export function subscribeToEmergencies(
 ) {
   const supabase = createSupabaseBrowserClient();
   const channel = supabase
-    .channel("realtime-emergencies")
+    .channel(uniqueChannelName("realtime-emergencies"))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "emergencies" },
@@ -231,7 +242,7 @@ export function subscribeToEmergencyTimeline(
 ) {
   const supabase = createSupabaseBrowserClient();
   const channel = supabase
-    .channel(`realtime-timeline-${emergencyId}`)
+    .channel(uniqueChannelName(`realtime-timeline-${emergencyId}`))
     .on(
       "postgres_changes",
       {

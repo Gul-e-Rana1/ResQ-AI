@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
   let groq;
   try {
     groq = getGroqClient();
-  } catch {
+  } catch (error) {
+    console.error("Groq AI assess-emergency: client init failed:", error);
     return NextResponse.json({ error: "AI service is not configured" }, { status: 503 });
   }
 

@@ -21,6 +21,7 @@ export interface SignUpInput {
   phone?: string;
   location?: string;
   password: string;
+  role?: "registered_user" | "camp_manager";
 }
 
 export interface SignInInput {

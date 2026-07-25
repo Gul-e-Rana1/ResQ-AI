@@ -14,6 +14,9 @@ import type { UserProfile } from "./types/auth";
 
 // Pages 
 import Landing from "./screens/Landing";
+import About from "./screens/About";
+import Contact from "./screens/Contact";
+import Privacy from "./screens/Privacy";
 import AuthPage from "./screens/Auth";
 import UserDashboard from "./screens/user/Dashboard";
 import MyEmergencies from "./screens/user/MyEmergencies";
@@ -26,6 +29,7 @@ import Helplines from "./screens/user/Helplines";
 import CampDashboard from "./screens/camp/CampDashboard";
 import EmergencyRequests from "./screens/camp/EmergencyRequests";
 import TeamMembers from "./screens/camp/TeamMembers";
+import CampOnboarding from "./screens/camp/CampOnboarding";
 import AdminDashboard from "./screens/admin/AdminDashboard";
 import PendingApprovals from "./screens/admin/PendingApprovals";
 import UsersPage from "./screens/admin/UsersPage";
@@ -34,7 +38,7 @@ import Analytics from "./screens/admin/Analytics";
 // Public pages that don't need layout
 const PUBLIC_PAGES = new Set([
   "landing", "login", "register", "forgot_password", "reset_password",
-  "about", "contact", "helplines_public",
+  "about", "contact", "privacy", "helplines_public",
 ]);
 
 // Pages available without layout (auth pages)
@@ -52,7 +56,7 @@ export default function App() {
   const role = toShellRole(profile?.role) as UserRole;
 
   const notificationsQuery = useRealtimeNotifications(user?.id);
-  const { data: myCamp } = useMyCamp();
+  const { data: myCamp, isLoading: myCampLoading, refetch: refetchMyCamp } = useMyCamp();
 
   const myEmergenciesQuery = useRealtimeEmergencies({
     requesterId: user?.id,
@@ -146,25 +150,20 @@ export default function App() {
     }
   };
 
-  const handleRoleSwitch = (newRole: UserRole) => {
-    if (profile?.role !== "admin") {
-      addToast("info", "Role switching is available to administrators only");
-      return;
-    }
-
-    if (newRole === "user") changePage("user_dashboard");
-    else if (newRole === "camp_manager" || newRole === "camp_team_member") changePage("camp_dashboard");
-    else if (newRole === "admin") changePage("admin_dashboard");
-  };
-
   // Render page content
   const renderPage = () => {
     switch (page) {
       // Landing
       case "landing":
-      case "about":
-      case "contact":
         return <Landing onNavigate={navigate} />;
+      case "about":
+        return <About onNavigate={navigate} />;
+      case "contact":
+        return <Contact onNavigate={navigate} />;
+      case "privacy":
+        return <Privacy onNavigate={navigate} />;
+      case "helplines_public":
+        return <Helplines />;
 
       // Auth
       case "login":
@@ -208,10 +207,11 @@ export default function App() {
       case "camp_team":
         return <TeamMembers />;
       case "camp_details_mgmt":
-      case "camp_departments":
-      case "camp_profile":
-      case "camp_settings":
         return <CampDashboard onNavigate={navigate} />;
+      case "camp_profile":
+        return <ProfileSettings onNavigate={navigate} page="profile" />;
+      case "camp_settings":
+        return <ProfileSettings onNavigate={navigate} page="user_settings" />;
 
       // Admin pages
       case "admin_dashboard":
@@ -234,12 +234,31 @@ export default function App() {
   const isPublicPage = PUBLIC_PAGES.has(page) || AUTH_PAGES.has(page);
   const displayName = getProfileName(profile);
   const displayEmail = profile?.email || user?.email || "user@resqai.pk";
+  const needsCampOnboarding =
+    !isPublicPage &&
+    (role === "camp_manager" || role === "camp_team_member") &&
+    !myCampLoading &&
+    (!myCamp || myCamp.status !== "approved");
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-sm font-medium text-[#64748B]">Loading ResQ AI...</div>
       </div>
+    );
+  }
+
+  if (needsCampOnboarding) {
+    return (
+      <>
+        <CampOnboarding
+          role={role as "camp_manager" | "camp_team_member"}
+          camp={myCamp ?? null}
+          onCampCreated={() => refetchMyCamp()}
+          onLogout={handleLogout}
+        />
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </>
     );
   }
 
@@ -258,7 +277,6 @@ export default function App() {
           notifications={notificationsQuery.data || []}
           onNotificationClick={handleNotificationClick}
           badges={badges}
-          onRoleSwitch={profile?.role === "admin" ? handleRoleSwitch : undefined}
         >
           {renderPage()}
         </Layout>

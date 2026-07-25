@@ -39,9 +39,52 @@ export const USER_ROLES: UserRole[] = [
 ];
 
 export const PAKISTAN_EMERGENCY_HELPLINES = [
-  { name: "Rescue 1122", phone: "1122", scope: "Punjab, KP, Sindh, Balochistan, GB, AJK" },
-  { name: "Police Emergency", phone: "15", scope: "Pakistan" },
-  { name: "Edhi Ambulance", phone: "115", scope: "Pakistan" },
-  { name: "Aman Ambulance", phone: "1021", scope: "Karachi" },
-  { name: "NDMA", phone: "051-111-157-157", scope: "Pakistan" },
+  {
+    category: "Rescue & Disaster Response",
+    name: "Rescue 1122",
+    phone: "1122",
+    scope: "Punjab, KP, Sindh, Balochistan, GB, AJK",
+  },
+  {
+    category: "Rescue & Disaster Response",
+    name: "NDMA Helpline",
+    phone: "051-111-157-157",
+    scope: "Nationwide",
+  },
+  {
+    category: "Medical Emergency",
+    name: "Edhi Ambulance",
+    phone: "115",
+    scope: "Nationwide",
+  },
+  {
+    category: "Medical Emergency",
+    name: "Aman Ambulance",
+    phone: "1021",
+    scope: "Karachi only",
+  },
+  {
+    category: "Police & Safety",
+    name: "Police Emergency",
+    phone: "15",
+    scope: "Nationwide",
+  },
+  {
+    category: "Fire Brigade",
+    name: "Fire Emergency",
+    phone: "16",
+    scope: "Nationwide",
+  },
+  {
+    category: "Women Helpline",
+    name: "National Helpline",
+    phone: "1099",
+    scope: "Nationwide",
+  },
+  {
+    category: "Child Protection",
+    name: "Child Helpline",
+    phone: "1121",
+    scope: "Availability varies by province",
+  },
 ] as const;
