@@ -4,7 +4,14 @@ import type { Session, User } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { getSafeRedirectUrl } from "@/lib/security";
+import { AI_CHAT_STORAGE_KEY } from "@/lib/constants/storage";
 import type { SignInInput, SignUpInput, UserProfile } from "@/types/auth";
+
+function clearAiChatHistory() {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(AI_CHAT_STORAGE_KEY);
+  }
+}
 
 interface AuthContextValue {
   session: Session | null;
@@ -88,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       if (!data.user) return null;
+      clearAiChatHistory();
       return fetchProfile(data.user.id);
     },
     [fetchProfile, supabase],
@@ -118,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
     setSession(null);
     setProfile(null);
+    clearAiChatHistory();
   }, [supabase]);
 
   const sendPasswordReset = useCallback(

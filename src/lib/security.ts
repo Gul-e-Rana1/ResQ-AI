@@ -25,8 +25,14 @@ export function sanitizeAndFormatMarkdown(text: string): string {
   // Convert **bold** to <strong>bold</strong> safely
   const formattedBold = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
+  // Force a line break before numbered ("2. ") or bulleted ("- ") list markers
+  // that the model ran into the previous sentence instead of a real newline.
+  const withListBreaks = formattedBold
+    .replace(/([^\n])\s(\d{1,2}\.\s)/g, "$1\n$2")
+    .replace(/([^\n])\s(-\s)/g, "$1\n$2");
+
   // Convert newlines to <br/>
-  return formattedBold.replace(/\r?\n/g, "<br/>");
+  return withListBreaks.replace(/\r?\n/g, "<br/>");
 }
 
 /**
