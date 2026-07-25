@@ -115,7 +115,7 @@ export default function Landing({ onNavigate }: LandingProps) {
           <div className="hidden md:flex items-center gap-6">
             <button onClick={() => onNavigate("about")} className="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors">About</button>
             <button onClick={() => onNavigate("contact")} className="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors">Contact</button>
-            <button onClick={() => onNavigate("helplines")} className="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors">Helplines</button>
+            <button onClick={() => onNavigate("helplines_public")} className="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors">Helplines</button>
           </div>
 
           <div className="hidden md:flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function Landing({ onNavigate }: LandingProps) {
           <div className="md:hidden border-t border-[#E2E8F0] bg-white px-4 py-3 space-y-1 slide-down">
             <button onClick={() => onNavigate("about")} className="w-full text-left px-3 py-2 text-sm text-[#64748B] hover:bg-[#F8FAFC] rounded-lg">About</button>
             <button onClick={() => onNavigate("contact")} className="w-full text-left px-3 py-2 text-sm text-[#64748B] hover:bg-[#F8FAFC] rounded-lg">Contact</button>
-            <button onClick={() => onNavigate("helplines")} className="w-full text-left px-3 py-2 text-sm text-[#64748B] hover:bg-[#F8FAFC] rounded-lg">Helplines</button>
+            <button onClick={() => onNavigate("helplines_public")} className="w-full text-left px-3 py-2 text-sm text-[#64748B] hover:bg-[#F8FAFC] rounded-lg">Helplines</button>
             <div className="pt-2 flex gap-2">
               <Button variant="outline" size="sm" fullWidth onClick={() => onNavigate("login")}>Sign In</Button>
               <Button size="sm" fullWidth onClick={() => onNavigate("register")}>Get Started</Button>
@@ -367,14 +367,14 @@ export default function Landing({ onNavigate }: LandingProps) {
             <p className="text-sm text-[#64748B] mb-6 leading-relaxed">
               Access verified emergency numbers for disaster response, medical aid, police, and fire services. All numbers are verified and regularly updated.
             </p>
-            <Button variant="outline" onClick={() => onNavigate("helplines")} iconRight={<ChevronRight size={14} />}>
+            <Button variant="outline" onClick={() => onNavigate("helplines_public")} iconRight={<ChevronRight size={14} />}>
               View All Helplines
             </Button>
           </div>
 
           <div className="space-y-3">
             {helplines.map((h, i) => (
-              <div key={i} className="flex items-center gap-4 p-4 bg-white border border-[#E2E8F0] rounded-xl hover:border-[#CBD5E1] hover:shadow-sm transition-all group cursor-pointer" onClick={() => onNavigate("helplines")}>
+              <div key={i} className="flex items-center gap-4 p-4 bg-white border border-[#E2E8F0] rounded-xl hover:border-[#CBD5E1] hover:shadow-sm transition-all group cursor-pointer" onClick={() => onNavigate("helplines_public")}>
                 <div className="w-9 h-9 rounded-lg bg-[#FEF2F2] text-[#DC2626] flex items-center justify-center flex-shrink-0">
                   <Phone size={16} />
                 </div>
@@ -448,7 +448,7 @@ export default function Landing({ onNavigate }: LandingProps) {
             <div className="flex items-center gap-6 text-xs text-[#94A3B8]">
               <button onClick={() => onNavigate("about")} className="hover:text-[#64748B] transition-colors">About</button>
               <button onClick={() => onNavigate("contact")} className="hover:text-[#64748B] transition-colors">Contact</button>
-              <span>Privacy Policy</span>
+              <button onClick={() => onNavigate("privacy")} className="hover:text-[#64748B] transition-colors">Privacy Policy</button>
               <span>© 2026 ResQ AI</span>
             </div>
           </div>

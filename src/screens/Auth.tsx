@@ -165,6 +165,7 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
 
 function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", location: "", password: "", confirm: "" });
+  const [role, setRole] = useState<"registered_user" | "camp_manager">("registered_user");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"form" | "success">("form");
@@ -188,6 +189,7 @@ function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
         phone: form.phone,
         location: form.location,
         password: form.password,
+        role,
       });
       setStep("success");
     } catch (err) {
@@ -205,7 +207,11 @@ function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
             <CheckCircle size={24} className="text-[#059669]" />
           </div>
           <h3 className="text-base font-semibold text-[#0F172A] mb-2">Welcome to ResQ AI!</h3>
-          <p className="text-sm text-[#64748B] mb-6">Your account has been created successfully. Sign in to get started.</p>
+          <p className="text-sm text-[#64748B] mb-6">
+            {role === "camp_manager"
+              ? "Your account has been created. Sign in to register your relief camp — it will need admin approval before it goes live."
+              : "Your account has been created successfully. Sign in to get started."}
+          </p>
           <Button fullWidth onClick={() => onNavigate("login")}>Continue to Sign In</Button>
         </div>
       </AuthLayout>
@@ -221,6 +227,33 @@ function RegisterPage({ onNavigate }: { onNavigate: (p: string) => void }) {
     >
       <div className="space-y-3">
         {error && <Alert type="error">{error}</Alert>}
+
+        <div>
+          <label className="block text-xs font-medium text-[#334155] mb-1.5">I am registering as</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setRole("registered_user")}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all
+                ${role === "registered_user" ? "border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]" : "border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]"}`}
+            >
+              <User size={14} /> Resident
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("camp_manager")}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all
+                ${role === "camp_manager" ? "border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]" : "border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]"}`}
+            >
+              <Shield size={14} /> Camp Manager
+            </button>
+          </div>
+          {role === "camp_manager" && (
+            <p className="text-[11px] text-[#94A3B8] mt-1.5">
+              Camp Manager accounts register their relief camp after signing in, and require admin approval before it goes live.
+            </p>
+          )}
+        </div>
 
         <Input
           label="Full Name"

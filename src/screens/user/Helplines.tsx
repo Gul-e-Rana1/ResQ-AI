@@ -1,35 +1,34 @@
 import React, { useState } from "react";
-import { Phone, Shield, AlertTriangle, Heart, MapPin } from "lucide-react";
+import { Phone, Shield, AlertTriangle, Heart, Flame, HeartHandshake, Baby, MapPin } from "lucide-react";
 import { Card, SearchInput } from "../../components/ui";
 import { PAKISTAN_EMERGENCY_HELPLINES } from "@/lib/constants/pakistan";
 
-const CATEGORY_RULES: { category: string; icon: React.ReactNode; color: string; match: (name: string) => boolean }[] = [
-  {
-    category: "Rescue & Disaster Response",
-    icon: <AlertTriangle size={16} />,
-    color: "bg-[#FEF2F2] text-[#DC2626]",
-    match: (name) => name.includes("Rescue") || name.includes("NDMA"),
-  },
-  {
-    category: "Medical Emergency",
-    icon: <Heart size={16} />,
-    color: "bg-[#FFF7ED] text-[#EA580C]",
-    match: (name) => name.includes("Ambulance"),
-  },
-  {
-    category: "Police & Safety",
-    icon: <Shield size={16} />,
-    color: "bg-[#EFF6FF] text-[#2563EB]",
-    match: (name) => name.includes("Police"),
-  },
+const CATEGORY_STYLES: Record<string, { icon: React.ReactNode; color: string }> = {
+  "Rescue & Disaster Response": { icon: <AlertTriangle size={16} />, color: "bg-[#FEF2F2] text-[#DC2626]" },
+  "Medical Emergency": { icon: <Heart size={16} />, color: "bg-[#FFF7ED] text-[#EA580C]" },
+  "Police & Safety": { icon: <Shield size={16} />, color: "bg-[#EFF6FF] text-[#2563EB]" },
+  "Fire Brigade": { icon: <Flame size={16} />, color: "bg-[#FFF7ED] text-[#EA580C]" },
+  "Women Helpline": { icon: <HeartHandshake size={16} />, color: "bg-[#F5F3FF] text-[#7C3AED]" },
+  "Child Protection": { icon: <Baby size={16} />, color: "bg-[#ECFDF5] text-[#059669]" },
+};
+
+const categoryOrder = [
+  "Rescue & Disaster Response",
+  "Medical Emergency",
+  "Police & Safety",
+  "Fire Brigade",
+  "Women Helpline",
+  "Child Protection",
 ];
 
-const helplines = CATEGORY_RULES.map((rule) => ({
-  category: rule.category,
-  icon: rule.icon,
-  color: rule.color,
-  numbers: PAKISTAN_EMERGENCY_HELPLINES.filter((h) => rule.match(h.name)),
-})).filter((cat) => cat.numbers.length > 0);
+const helplines = categoryOrder
+  .map((category) => ({
+    category,
+    icon: CATEGORY_STYLES[category].icon,
+    color: CATEGORY_STYLES[category].color,
+    numbers: PAKISTAN_EMERGENCY_HELPLINES.filter((h) => h.category === category),
+  }))
+  .filter((cat) => cat.numbers.length > 0);
 
 export default function Helplines() {
   const [search, setSearch] = useState("");
