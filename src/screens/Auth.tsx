@@ -122,16 +122,16 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
         </div>
 
         <Button fullWidth loading={loading} onClick={() => handleLogin()}>
-          Sign In as User
+          Sign In
         </Button>
 
-        <div className="relative flex items-center gap-3">
+        {/* <div className="relative flex items-center gap-3">
           <div className="flex-1 h-px bg-[#E2E8F0]" />
           <span className="text-xs text-[#94A3B8]">or continue as</span>
-          <div className="flex-1 h-px bg-[#E2E8F0]" />
-        </div>
+          <div className=" flex-1 h-px bg-[#E2E8F0]" />
+        </div> */}
 
-        <div className="grid grid-cols-2 gap-2">
+        {/* <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => handleLogin(DEMO_ACCOUNTS.camp_manager)}
             className="flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
@@ -150,7 +150,7 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
             Admin
           </button>
-        </div>
+        </div> */}
 
         <p className="text-xs text-center text-[#64748B]">
           Don't have an account?{" "}
