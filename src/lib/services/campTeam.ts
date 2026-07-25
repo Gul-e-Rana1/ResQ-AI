@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uniqueChannelName } from "@/lib/supabase/channel";
 
 export interface CampTeamMemberRecord {
   id: string;
@@ -105,7 +106,7 @@ export async function removeTeamMember(memberId: string): Promise<boolean> {
 export function subscribeToCampTeam(campId: string, onChange: (payload: unknown) => void) {
   const supabase = createSupabaseBrowserClient();
   const channel = supabase
-    .channel(`camp-team-${campId}`)
+    .channel(uniqueChannelName(`camp-team-${campId}`))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "camp_team_members", filter: `camp_id=eq.${campId}` },

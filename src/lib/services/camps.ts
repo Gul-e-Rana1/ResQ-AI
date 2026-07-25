@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uniqueChannelName } from "@/lib/supabase/channel";
 import type { CampStatus, DisasterType } from "@/types/domain";
 
 export interface ReliefCampRecord {
@@ -64,6 +65,55 @@ export async function fetchReliefCamps(params?: {
   }
 
   return (data as ReliefCampRecord[]) || [];
+}
+
+export interface CreateCampApplicationInput {
+  managerId: string;
+  name: string;
+  description?: string;
+  province: string;
+  district: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  capacityTotal: number;
+  contactPhone?: string;
+  contactEmail?: string;
+  supportedDisasters: DisasterType[];
+}
+
+export async function createCampApplication(
+  input: CreateCampApplicationInput,
+): Promise<{ camp: ReliefCampRecord | null; error?: string }> {
+  const supabase = createSupabaseBrowserClient();
+
+  const { data, error } = await supabase
+    .from("relief_camps")
+    .insert([
+      {
+        manager_id: input.managerId,
+        name: input.name,
+        description: input.description || null,
+        province: input.province,
+        district: input.district,
+        address: input.address,
+        latitude: input.latitude,
+        longitude: input.longitude,
+        capacity_total: input.capacityTotal,
+        capacity_available: input.capacityTotal,
+        contact_phone: input.contactPhone || null,
+        contact_email: input.contactEmail || null,
+        supported_disasters: input.supportedDisasters,
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    return { camp: null, error: error.message };
+  }
+
+  return { camp: data as ReliefCampRecord };
 }
 
 export async function fetchCampByManagerId(managerId: string): Promise<ReliefCampRecord | null> {
@@ -259,7 +309,7 @@ export async function recommendCamps(input: {
 export function subscribeToCamps(onChange: (payload: unknown) => void) {
   const supabase = createSupabaseBrowserClient();
   const channel = supabase
-    .channel("realtime-camps")
+    .channel(uniqueChannelName("realtime-camps"))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "relief_camps" },

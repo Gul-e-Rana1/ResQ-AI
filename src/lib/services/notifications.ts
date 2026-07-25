@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uniqueChannelName } from "@/lib/supabase/channel";
 
 export interface NotificationRecord {
   id: string;
@@ -82,7 +83,7 @@ export function subscribeToUserNotifications(
 ) {
   const supabase = createSupabaseBrowserClient();
   const channel = supabase
-    .channel(`user-notifications-${userId}`)
+    .channel(uniqueChannelName(`user-notifications-${userId}`))
     .on(
       "postgres_changes",
       {
