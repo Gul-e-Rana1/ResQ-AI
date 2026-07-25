@@ -23,6 +23,9 @@ export interface EmergencyRecord {
   relief_camps?: {
     name: string;
   } | null;
+  profiles?: {
+    full_name: string | null;
+  } | null;
 }
 
 export interface EmergencyTimelineRecord {
@@ -63,7 +66,7 @@ export async function fetchEmergencies(params?: {
   const supabase = createSupabaseBrowserClient();
   let query = supabase
     .from("emergencies")
-    .select("*, relief_camps(name)")
+    .select("*, relief_camps(name), profiles(full_name)")
     .order("created_at", { ascending: false });
 
   if (params?.requesterId) {
