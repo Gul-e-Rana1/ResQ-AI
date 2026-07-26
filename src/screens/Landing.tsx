@@ -306,7 +306,10 @@ export default function Landing({ onNavigate }: LandingProps) {
             <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#0F172A] mb-3 tracking-tight">
               Lives changed by ResQ AI
             </h2>
-            <p className="text-sm text-[#64748B]">Real stories from people we've helped during emergencies.</p>
+            <p className="text-sm text-[#64748B]">Illustrative stories of how ResQ AI helps people during emergencies.</p>
+            <p className="text-xs text-[#94A3B8] mt-1">
+              These are sample testimonials for illustration only — any resemblance of names to real people is coincidental.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-5">
