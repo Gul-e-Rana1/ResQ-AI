@@ -6,9 +6,13 @@
 
 
 **Demo credentials**
+
 Password is same for all: ResQ@123
+
 1. admin.resqai@gmail.com
+  
 2. campmanager.resqai@gmail.com
+   
 3. user.resqai@gmaik.com
 
 
