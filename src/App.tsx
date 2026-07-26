@@ -188,7 +188,7 @@ export default function App() {
         return <AIChat onNavigate={navigate} />;
       case "nearby_camps":
         return <NearbyCamps onNavigate={navigate} />;
-      case "camp_details":
+      case "view_camp_details":
         return <NearbyCamps onNavigate={navigate} />;
       case "profile":
         return <ProfileSettings onNavigate={navigate} page="profile" />;

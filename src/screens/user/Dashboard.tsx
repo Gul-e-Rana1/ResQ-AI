@@ -243,7 +243,7 @@ export default function UserDashboard({ onNavigate }: Props) {
                     key={camp.id}
                     padding="sm"
                     hover
-                    onClick={() => onNavigate("camp_details", camp.id)}
+                    onClick={() => onNavigate("view_camp_details", camp.id)}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
