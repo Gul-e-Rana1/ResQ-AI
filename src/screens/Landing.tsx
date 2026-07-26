@@ -1,21 +1,14 @@
 import React, { useState } from "react";
 import {
   HeartHandshake, MapPin, MessageSquare, Shield, Zap, ChevronRight,
-  Phone, AlertTriangle, Users, CheckCircle, ArrowRight, Star,
-  Activity, Clock, Globe, Menu, X
+  Phone, AlertTriangle, CheckCircle, ArrowRight, Star,
+  Activity, Globe, Menu, X
 } from "lucide-react";
 import { Button, Badge } from "../components/ui";
 
 interface LandingProps {
   onNavigate: (page: string) => void;
 }
-
-const stats = [
-  { label: "People Helped", value: "124,000+", icon: <Users size={18} /> },
-  { label: "Relief Camps", value: "580+", icon: <MapPin size={18} /> },
-  { label: "Emergencies Resolved", value: "98.4%", icon: <CheckCircle size={18} /> },
-  { label: "Response Time", value: "< 8 min", icon: <Clock size={18} /> },
-];
 
 const features = [
   {
@@ -278,22 +271,6 @@ export default function Landing({ onNavigate }: LandingProps) {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="border-y border-[#E2E8F0] bg-[#F8FAFC]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, i) => (
-              <div key={i} className="text-center">
-                <p className="font-[family-name:var(--font-display)] text-2xl md:text-3xl font-bold text-[#0F172A] mb-1">
-                  {stat.value}
-                </p>
-                <p className="text-sm text-[#64748B]">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Features */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
         <div className="text-center mb-14">
@@ -329,7 +306,10 @@ export default function Landing({ onNavigate }: LandingProps) {
             <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#0F172A] mb-3 tracking-tight">
               Lives changed by ResQ AI
             </h2>
-            <p className="text-sm text-[#64748B]">Real stories from people we've helped during emergencies.</p>
+            <p className="text-sm text-[#64748B]">Illustrative stories of how ResQ AI helps people during emergencies.</p>
+            <p className="text-xs text-[#94A3B8] mt-1">
+              These are sample testimonials for illustration only — any resemblance of names to real people is coincidental.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-5">
