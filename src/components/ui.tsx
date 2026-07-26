@@ -753,7 +753,7 @@ interface TabsProps {
 
 export function Tabs({ tabs, active, onChange, className = "" }: TabsProps) {
   return (
-    <div className={`flex items-center gap-1 border-b border-[#E2E8F0] ${className}`}>
+    <div className={`flex items-center gap-1 border-b border-[#E2E8F0] overflow-x-auto overflow-y-hidden ${className}`}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
