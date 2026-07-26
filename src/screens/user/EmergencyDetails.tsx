@@ -355,7 +355,7 @@ export default function EmergencyDetails({ onNavigate, emergencyId }: Props) {
                   >
                     Call Camp
                   </Button>
-                  <Button variant="secondary" size="sm" fullWidth onClick={() => onNavigate("camp_details", camp.id)} icon={<ChevronRight size={12} />}>
+                  <Button variant="secondary" size="sm" fullWidth onClick={() => onNavigate("view_camp_details", camp.id)} icon={<ChevronRight size={12} />}>
                     View Camp
                   </Button>
                 </div>

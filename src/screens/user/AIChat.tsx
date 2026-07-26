@@ -205,7 +205,7 @@ export default function AIChat({ onNavigate }: Props) {
                     <div
                       key={rec.camp.id}
                       className="bg-white border border-[#E2E8F0] rounded-xl p-3 hover:border-[#CBD5E1] hover:shadow-sm cursor-pointer transition-all group"
-                      onClick={() => onNavigate("camp_details", rec.camp.id)}
+                      onClick={() => onNavigate("view_camp_details", rec.camp.id)}
                     >
                       <div className="flex items-center justify-between">
                         <div>
