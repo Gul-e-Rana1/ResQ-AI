@@ -4,6 +4,14 @@
 
 🔗 **Live app:** [https://res-q-ai-xi.vercel.app/](https://res-q-ai-xi.vercel.app/)
 
+
+**Demo credentials**
+Password is same for all: ResQ@123
+1. admin.resqai@gmail.com
+2. campmanager.resqai@gmail.com
+3. user.resqai@gmaik.com
+
+
 ---
 
 ## Table of Contents
