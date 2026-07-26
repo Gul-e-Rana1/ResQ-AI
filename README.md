@@ -18,6 +18,7 @@
 - [Running the project locally](#running-the-project-locally)
 - [Demo accounts](#demo-accounts)
 - [Project structure](#project-structure)
+- [Future enhancements](#future-enhancements)
 
 ---
 
@@ -304,3 +305,17 @@ src/
 supabase/migrations/   Database schema, RLS policies, seed data
 docs/                  Architecture, Supabase setup, and deployment notes
 ```
+
+---
+
+## Future enhancements
+
+Ideas identified during development that are deliberately out of scope for the current release:
+
+- **Invite-based team members** — let a Camp Manager add a Camp Helper by email before that person has signed up (currently the account must already exist, since `camp_team_members.user_id` is a required foreign key to a real profile). Would need a schema change to store a pending invite and link it on signup.
+- **Push/SMS notifications** — the in-app notification center is real-time today; extending delivery to SMS (important for low-connectivity disaster scenarios in Pakistan) or push notifications would improve reach.
+- **Offline-first support** — a PWA/service-worker layer so residents can submit an emergency with partial connectivity and have it sync once back online.
+- **Multi-language UI** — the AI Assistant already replies in the user's language (English/Urdu), but the rest of the interface is English-only; a full Urdu UI translation would make the platform more accessible.
+- **Camp capacity forecasting** — use historical emergency data to predict camp demand surges instead of only reporting current occupancy.
+- **Automated camp verification** — admin approval is currently manual; document/photo upload plus a lightweight verification workflow could speed up onboarding trusted camps.
+- **Expand beyond Pakistan** — the data model already keeps province/district as free text specifically to allow this later; would need country-specific helpline data and disaster-type sets.
