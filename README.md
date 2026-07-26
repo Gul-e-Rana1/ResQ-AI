@@ -294,7 +294,6 @@ For quickly exploring every role without registering:
 |---|---|---|
 | Admin | `admin.resqai@gmail.com` | `ResQ@123` |
 | Camp Manager | `campmanager.resqai@gmail.com` | `ResQ@123` |
-| Camp Helper | `helper.resqai@gmail.com` | `ResQ@123` |
 | Resident / User | `user.resqai@gmail.com` | `ResQ@123` |
 
 Seed these locally with `pnpm db:seed:demo-users` after migrations are applied.
