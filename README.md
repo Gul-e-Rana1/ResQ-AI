@@ -13,7 +13,7 @@ Password is same for all: ResQ@123
   
 2. campmanager.resqai@gmail.com
    
-3. user.resqai@gmaik.com
+3. user.resqai@gmail.com
 
 
 ---
