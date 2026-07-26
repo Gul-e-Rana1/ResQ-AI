@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { X, Check, AlertTriangle, Info, CheckCircle, XCircle, ChevronDown, Search, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // ─── Button ─────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`${btnBase} ${btnVariants[variant]} ${btnSizes[size]} ${fullWidth ? "w-full" : ""} ${className}`}
+      className={cn(btnBase, btnVariants[variant], btnSizes[size], fullWidth && "w-full", className)}
       disabled={disabled || loading}
       {...rest}
     >
@@ -752,7 +753,7 @@ interface TabsProps {
 
 export function Tabs({ tabs, active, onChange, className = "" }: TabsProps) {
   return (
-    <div className={`flex items-center gap-1 border-b border-[#E2E8F0] ${className}`}>
+    <div className={`flex items-center gap-1 border-b border-[#E2E8F0] overflow-x-auto overflow-y-hidden ${className}`}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
