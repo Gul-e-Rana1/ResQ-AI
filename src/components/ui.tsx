@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { X, Check, AlertTriangle, Info, CheckCircle, XCircle, ChevronDown, Search, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // ─── Button ─────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`${btnBase} ${btnVariants[variant]} ${btnSizes[size]} ${fullWidth ? "w-full" : ""} ${className}`}
+      className={cn(btnBase, btnVariants[variant], btnSizes[size], fullWidth && "w-full", className)}
       disabled={disabled || loading}
       {...rest}
     >
