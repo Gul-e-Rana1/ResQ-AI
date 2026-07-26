@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   LayoutDashboard, AlertTriangle, MapPin, MessageSquare, Phone, User, Settings,
-  ChevronRight, Bell, Search, Menu, X, LogOut, Shield, Users, BarChart3,
+  ChevronRight, Bell, Menu, X, LogOut, Shield, Users, BarChart3,
   CheckSquare, Building2, FileText, HeartHandshake
 } from "lucide-react";
 import { Avatar, Badge } from "./ui";
@@ -133,7 +133,7 @@ export function Layout({
   const visibleNotifications = notifications.slice(0, 6);
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
+    <div className="flex h-dvh bg-[#F8FAFC] overflow-hidden">
       {/* Sidebar Overlay (mobile) */}
       {sidebarOpen && (
         <div
@@ -144,7 +144,7 @@ export function Layout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-60 bg-white border-r border-[#E2E8F0] flex flex-col h-screen transition-transform duration-250 ease-in-out
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-60 bg-white border-r border-[#E2E8F0] flex flex-col h-dvh transition-transform duration-250 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         {/* Logo */}
@@ -243,13 +243,6 @@ export function Layout({
           </div>
 
           <div className="flex-1" />
-
-          {/* Search */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-sm text-[#94A3B8] cursor-pointer hover:border-[#CBD5E1] transition-all w-52">
-            <Search size={13} />
-            <span>Search...</span>
-            <kbd className="ml-auto text-[10px] px-1 py-0.5 bg-white border border-[#E2E8F0] rounded font-mono">⌘K</kbd>
-          </div>
 
           {/* Notifications */}
           <div className="relative">
