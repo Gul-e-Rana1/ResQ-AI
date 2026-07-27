@@ -237,6 +237,17 @@ export default function EmergencyRequests({ onNavigate, initialEmergencyId }: Pr
                             Mark En Route
                           </Button>
                         )}
+                        {req.status === "En Route" && (
+                          <Button
+                            size="xs"
+                            variant="primary"
+                            icon={<Check size={10} />}
+                            disabled={isUpdating}
+                            onClick={() => runStatusUpdate(req.id, "Arrived")}
+                          >
+                            Mark Arrived
+                          </Button>
+                        )}
                         {req.status === "Arrived" && (
                           <Button
                             size="xs"
