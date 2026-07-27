@@ -58,20 +58,18 @@ export async function addTeamMemberByEmail(input: {
 }): Promise<{ ok: boolean; error?: string }> {
   const supabase = createSupabaseBrowserClient();
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("email", input.email.trim().toLowerCase())
-    .maybeSingle();
+  const { data: profileId, error: profileError } = await supabase.rpc("find_profile_id_by_email", {
+    p_email: input.email.trim().toLowerCase(),
+  });
 
-  if (profileError || !profile) {
+  if (profileError || !profileId) {
     return { ok: false, error: "No registered user found with that email address." };
   }
 
   const { error } = await supabase.from("camp_team_members").insert([
     {
       camp_id: input.campId,
-      user_id: profile.id,
+      user_id: profileId,
       title: input.title,
       can_update_camp: input.canUpdateCamp ?? true,
       can_respond_emergencies: input.canRespondEmergencies ?? true,
@@ -82,10 +80,7 @@ export async function addTeamMemberByEmail(input: {
     return { ok: false, error: error.message };
   }
 
-  await supabase
-    .from("profiles")
-    .update({ role: "camp_team_member" })
-    .eq("id", profile.id);
+  await supabase.rpc("sync_team_member_role", { p_user_id: profileId });
 
   return { ok: true };
 }
