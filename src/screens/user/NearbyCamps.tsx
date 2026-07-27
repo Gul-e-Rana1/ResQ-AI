@@ -329,7 +329,7 @@ export default function NearbyCamps({ onNavigate }: Props) {
                     >
                       Contact Camp
                     </Button>
-                    <Button fullWidth onClick={() => onNavigate("camp_details", selectedCamp.id)} iconRight={<ChevronRight size={13} />}>
+                    <Button fullWidth onClick={() => onNavigate("view_camp_details", selectedCamp.id)} iconRight={<ChevronRight size={13} />}>
                       View Full Details
                     </Button>
                   </div>

@@ -243,7 +243,7 @@ export default function UserDashboard({ onNavigate }: Props) {
                     key={camp.id}
                     padding="sm"
                     hover
-                    onClick={() => onNavigate("camp_details", camp.id)}
+                    onClick={() => onNavigate("view_camp_details", camp.id)}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -281,9 +281,9 @@ export default function UserDashboard({ onNavigate }: Props) {
       </div>
 
       {/* Recent Emergencies + AI Panel */}
-      <div className="grid lg:grid-cols-3 gap-5">
+      <div className="grid lg:grid-cols-3 gap-5 min-w-0">
         {/* Recent emergencies */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <Card padding="none">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F1F5F9]">
               <h2 className="text-sm font-semibold text-[#0F172A]">Recent Emergencies</h2>
@@ -313,11 +313,11 @@ export default function UserDashboard({ onNavigate }: Props) {
                         <AlertTriangle size={14} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-[#94A3B8] font-[family-name:var(--font-mono)]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs font-semibold text-[#94A3B8] font-[family-name:var(--font-mono)] flex-shrink-0">
                             #{em.id.slice(0, 8).toUpperCase()}
                           </span>
-                          <span className="text-sm font-medium text-[#0F172A] truncate">{em.title}</span>
+                          <span className="text-sm font-medium text-[#0F172A] truncate min-w-0">{em.title}</span>
                         </div>
                         <p className="text-xs text-[#94A3B8] mt-0.5">
                           {em.relief_camps?.name || "Unassigned"} · {formatTime(em.created_at)}
@@ -336,7 +336,7 @@ export default function UserDashboard({ onNavigate }: Props) {
         </div>
 
         {/* AI Assistant quick panel */}
-        <div>
+        <div className="min-w-0">
           <Card className="h-full flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-[#F5F3FF] text-[#7C3AED] flex items-center justify-center">

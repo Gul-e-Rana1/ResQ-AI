@@ -83,12 +83,14 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
       showBack
       onBack={() => onNavigate("landing")}
     >
-      <div className="space-y-4">
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
         {error && <Alert type="error">{error}</Alert>}
 
         <Input
           label="Email address"
           type="email"
+          name="email"
+          autoComplete="email"
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -100,12 +102,14 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
           <Input
             label="Password"
             type={showPass ? "text" : "password"}
+            name="password"
+            autoComplete="current-password"
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             prefixIcon={<Lock size={14} />}
             suffixIcon={
-              <button onClick={() => setShowPass(!showPass)} className="pointer-events-auto">
+              <button type="button" onClick={() => setShowPass(!showPass)} className="pointer-events-auto">
                 {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             }
@@ -113,6 +117,7 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
           />
           <div className="flex justify-end">
             <button
+              type="button"
               onClick={() => onNavigate("forgot_password")}
               className="text-xs text-[#2563EB] hover:underline"
             >
@@ -121,20 +126,31 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         </div>
 
-        <Button fullWidth loading={loading} onClick={() => handleLogin()}>
+        <Button type="submit" fullWidth loading={loading}>
           Sign In
         </Button>
 
         <div className="relative flex items-center gap-3">
           <div className="flex-1 h-px bg-[#E2E8F0]" />
-          <span className="text-xs text-[#94A3B8]">or continue as</span>
-          <div className=" flex-1 h-px bg-[#E2E8F0]" />
+          <span className="text-xs text-[#94A3B8]">demo accounts</span>
+          <div className="flex-1 h-px bg-[#E2E8F0]" />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button
+            type="button"
+            onClick={() => handleLogin(DEMO_ACCOUNTS.registered_user)}
+            className="flex flex-col items-center gap-1.5 px-2 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
+          >
+            <div className="w-5 h-5 rounded bg-[#EFF6FF] flex items-center justify-center">
+              <User size={11} className="text-[#2563EB]" />
+            </div>
+            Resident
+          </button>
+          <button
+            type="button"
             onClick={() => handleLogin(DEMO_ACCOUNTS.camp_manager)}
-            className="flex flex-col items-center justify-center gap-1 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
+            className="flex flex-col items-center gap-1.5 px-2 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
           >
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded bg-[#ECFDF5] flex items-center justify-center">
@@ -148,8 +164,9 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
           </button>
           <button
+            type="button"
             onClick={() => handleLogin(DEMO_ACCOUNTS.admin)}
-            className="flex flex-col items-center justify-center gap-1 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
+            className="flex flex-col items-center gap-1.5 px-2 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
           >
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded bg-[#F5F3FF] flex items-center justify-center">
@@ -166,11 +183,11 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
 
         <p className="text-xs text-center text-[#64748B]">
           Don't have an account?{" "}
-          <button onClick={() => onNavigate("register")} className="text-[#2563EB] font-medium hover:underline">
+          <button type="button" onClick={() => onNavigate("register")} className="text-[#2563EB] font-medium hover:underline">
             Create one
           </button>
         </p>
-      </div>
+      </form>
     </AuthLayout>
   );
 }
