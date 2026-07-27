@@ -93,8 +93,8 @@ export function EmergencyTimeline({ currentStatus, events = [], compact = false 
     <div className={`space-y-0 ${compact ? "" : ""}`}>
       {steps.map((step, idx) => {
         const stepOrder = statusOrder[step.status];
-        const isCompleted = stepOrder < currentStep;
-        const isCurrent = stepOrder === currentStep;
+        const isCompleted = stepOrder < currentStep || (currentStatus === "resolved" && stepOrder === currentStep);
+        const isCurrent = stepOrder === currentStep && currentStatus !== "resolved";
         const isPending = stepOrder > currentStep;
 
         const event = events.find((e) => e.status === step.status);
