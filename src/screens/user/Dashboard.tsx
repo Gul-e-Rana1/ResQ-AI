@@ -147,7 +147,7 @@ export default function UserDashboard({ onNavigate }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold text-[#0F172A] font-[family-name:var(--font-display)]">
-            Good morning, {displayName} 👋
+            Hi, {displayName} 👋
           </h1>
           <p className="text-sm text-[#64748B] mt-0.5">
             {locationLabel} · <span className="text-[#059669] font-medium">{camps.length} camps nearby</span>
