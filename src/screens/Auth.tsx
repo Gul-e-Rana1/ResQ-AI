@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   HeartHandshake, Eye, EyeOff, ArrowLeft, Mail, Lock, User, Phone,
-  MapPin, CheckCircle, AlertTriangle, Shield
+  MapPin, CheckCircle, AlertTriangle, Shield, KeyRound, ChevronDown
 } from "lucide-react";
 import { Button, Input, Alert } from "../components/ui";
 import { DEMO_ACCOUNTS, getDashboardForRole } from "@/lib/auth/roles";
@@ -61,6 +61,7 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showDemo, setShowDemo] = useState(false);
   const { signIn } = useAuth();
 
   const handleLogin = async (credentials?: { email: string; password: string }) => {
@@ -130,55 +131,75 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
           Sign In
         </Button>
 
-        <div className="relative flex items-center gap-3">
-          <div className="flex-1 h-px bg-[#E2E8F0]" />
-          <span className="text-xs text-[#94A3B8]">demo accounts</span>
-          <div className="flex-1 h-px bg-[#E2E8F0]" />
-        </div>
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setShowDemo((v) => !v)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-dashed border-[#CBD5E1] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#94A3B8] transition-all font-medium"
+          >
+            <KeyRound size={14} className="text-[#2563EB]" />
+            Demo Credentials
+            <ChevronDown
+              size={14}
+              className={`text-[#94A3B8] transition-transform ${showDemo ? "rotate-180" : ""}`}
+            />
+          </button>
+          <p className="text-[11px] text-center text-[#94A3B8] mt-1.5">
+            {showDemo ? "Click to hide demo credentials" : "Click to view demo credentials"}
+          </p>
 
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => handleLogin(DEMO_ACCOUNTS.registered_user)}
-            className="flex flex-col items-center gap-1.5 px-2 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
-          >
-            <div className="w-5 h-5 rounded bg-[#EFF6FF] flex items-center justify-center">
-              <User size={11} className="text-[#2563EB]" />
+          {showDemo && (
+            <div className="grid grid-cols-1 gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => handleLogin(DEMO_ACCOUNTS.registered_user)}
+                className="flex items-center justify-between gap-3 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-left hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
+                    <User size={13} className="text-[#2563EB]" />
+                  </div>
+                  <span className="text-xs font-semibold text-[#334155]">Resident</span>
+                </div>
+                <div className="text-[10px] text-[#94A3B8] text-right leading-tight">
+                  <div>{DEMO_ACCOUNTS.registered_user.email}</div>
+                  <div>{DEMO_ACCOUNTS.registered_user.password}</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLogin(DEMO_ACCOUNTS.camp_manager)}
+                className="flex items-center justify-between gap-3 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-left hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#ECFDF5] flex items-center justify-center shrink-0">
+                    <Shield size={13} className="text-[#059669]" />
+                  </div>
+                  <span className="text-xs font-semibold text-[#334155]">Camp Manager</span>
+                </div>
+                <div className="text-[10px] text-[#94A3B8] text-right leading-tight">
+                  <div>{DEMO_ACCOUNTS.camp_manager.email}</div>
+                  <div>{DEMO_ACCOUNTS.camp_manager.password}</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLogin(DEMO_ACCOUNTS.admin)}
+                className="flex items-center justify-between gap-3 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-left hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#F5F3FF] flex items-center justify-center shrink-0">
+                    <Shield size={13} className="text-[#7C3AED]" />
+                  </div>
+                  <span className="text-xs font-semibold text-[#334155]">Admin</span>
+                </div>
+                <div className="text-[10px] text-[#94A3B8] text-right leading-tight">
+                  <div>{DEMO_ACCOUNTS.admin.email}</div>
+                  <div>{DEMO_ACCOUNTS.admin.password}</div>
+                </div>
+              </button>
             </div>
-            Resident
-          </button>
-          <button
-            type="button"
-            onClick={() => handleLogin(DEMO_ACCOUNTS.camp_manager)}
-            className="flex flex-col items-center gap-1.5 px-2 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded bg-[#ECFDF5] flex items-center justify-center">
-                <Shield size={11} className="text-[#059669]" />
-              </div>
-              Camp Manager
-            </div>
-            <div className="text-[10px] font-normal text-[#94A3B8] text-center leading-tight">
-              <div>{DEMO_ACCOUNTS.camp_manager.email}</div>
-              <div>{DEMO_ACCOUNTS.camp_manager.password}</div>
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleLogin(DEMO_ACCOUNTS.admin)}
-            className="flex flex-col items-center gap-1.5 px-2 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-xs text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded bg-[#F5F3FF] flex items-center justify-center">
-                <Shield size={11} className="text-[#7C3AED]" />
-              </div>
-              Admin
-            </div>
-            <div className="text-[10px] font-normal text-[#94A3B8] text-center leading-tight">
-              <div>{DEMO_ACCOUNTS.admin.email}</div>
-              <div>{DEMO_ACCOUNTS.admin.password}</div>
-            </div>
-          </button>
+          )}
         </div>
 
         <p className="text-xs text-center text-[#64748B]">
