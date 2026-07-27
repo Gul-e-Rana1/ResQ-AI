@@ -415,9 +415,9 @@ export function Modal({ open, onClose, title, children, size = "md", footer }: M
         className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
         onClick={onClose}
       />
-      <div className={`relative w-full ${modalSizes[size]} bg-white rounded-2xl shadow-xl scale-in`}>
+      <div className={`relative w-full ${modalSizes[size]} max-h-[90vh] bg-white rounded-2xl shadow-xl scale-in flex flex-col`}>
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] shrink-0">
             <h2 className="text-base font-semibold text-[#0F172A] font-[family-name:var(--font-display)]">{title}</h2>
             <button
               onClick={onClose}
@@ -427,9 +427,9 @@ export function Modal({ open, onClose, title, children, size = "md", footer }: M
             </button>
           </div>
         )}
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 overflow-y-auto">{children}</div>
         {footer && (
-          <div className="px-6 py-4 border-t border-[#E2E8F0] flex items-center justify-end gap-3">
+          <div className="px-6 py-4 border-t border-[#E2E8F0] flex items-center justify-end gap-3 shrink-0">
             {footer}
           </div>
         )}
