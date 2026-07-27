@@ -125,32 +125,44 @@ function LoginPage({ onNavigate }: { onNavigate: (p: string) => void }) {
           Sign In
         </Button>
 
-        {/* <div className="relative flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
           <div className="flex-1 h-px bg-[#E2E8F0]" />
           <span className="text-xs text-[#94A3B8]">or continue as</span>
           <div className=" flex-1 h-px bg-[#E2E8F0]" />
-        </div> */}
+        </div>
 
-        {/* <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => handleLogin(DEMO_ACCOUNTS.camp_manager)}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
+            className="flex flex-col items-center justify-center gap-1 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
           >
-            <div className="w-5 h-5 rounded bg-[#ECFDF5] flex items-center justify-center">
-              <Shield size={11} className="text-[#059669]" />
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded bg-[#ECFDF5] flex items-center justify-center">
+                <Shield size={11} className="text-[#059669]" />
+              </div>
+              Camp Manager
             </div>
-            Camp Manager
+            <div className="text-[10px] font-normal text-[#94A3B8] text-center leading-tight">
+              <div>{DEMO_ACCOUNTS.camp_manager.email}</div>
+              <div>{DEMO_ACCOUNTS.camp_manager.password}</div>
+            </div>
           </button>
           <button
             onClick={() => handleLogin(DEMO_ACCOUNTS.admin)}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
+            className="flex flex-col items-center justify-center gap-1 px-3 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all font-medium"
           >
-            <div className="w-5 h-5 rounded bg-[#F5F3FF] flex items-center justify-center">
-              <Shield size={11} className="text-[#7C3AED]" />
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded bg-[#F5F3FF] flex items-center justify-center">
+                <Shield size={11} className="text-[#7C3AED]" />
+              </div>
+              Admin
             </div>
-            Admin
+            <div className="text-[10px] font-normal text-[#94A3B8] text-center leading-tight">
+              <div>{DEMO_ACCOUNTS.admin.email}</div>
+              <div>{DEMO_ACCOUNTS.admin.password}</div>
+            </div>
           </button>
-        </div> */}
+        </div>
 
         <p className="text-xs text-center text-[#64748B]">
           Don't have an account?{" "}
