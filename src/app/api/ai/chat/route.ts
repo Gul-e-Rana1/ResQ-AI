@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DISASTER_TYPES } from "@/lib/constants/pakistan";
-import { buildHelplinesText, getGroqClient, GROQ_MODEL } from "@/lib/ai/groq";
+import { buildHelplinesText, getGroqClient, createChatCompletionWithFallback } from "@/lib/ai/groq";
 
 export const runtime = "nodejs";
 
@@ -78,8 +78,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
+    const completion = await createChatCompletionWithFallback(groq, {
       temperature: 0.3,
       max_tokens: 700,
       response_format: { type: "json_object" },
